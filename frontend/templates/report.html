@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Report — {{ scan.target }}{% endblock %}
+
+{% block head %}
+<style>
+@media print {
+  .sidebar, .topbar, .report-actions, .breadcrumb { display: none !important; }
+  .main-wrapper { margin-left: 0 !important; }
+  .page-content { padding: 0 !important; }
+  .report-section { break-inside: avoid; }
+  body { background: #fff !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+  <ol class="breadcrumb mb-0" style="font-size:13px">
+    <li class="breadcrumb-item"><a href="/reports">Reports</a></li>
+    <li class="breadcrumb-item active">Scan #{{ scan.id }} — {{ scan.target }}</li>
+  </ol>
+</nav>
+
+<!-- Report header -->
+<div class="report-header surface mb-4">
+  <div class="report-header-body">
+    <div class="report-header-left">
+      <div class="report-badge-row">
+        <span class="badge badge-{{ risk_cls }} report-risk-badge">{{ risk_level }} Risk</span>
+        <span class="text-muted small">pscan Security Report · Scan #{{ scan.id }}</span>
+      </div>
+      <h1 class="report-title mono">{{ scan.target }}</h1>
+      <p class="report-subtitle">
+        Ports {{ scan.start_port }}–{{ scan.end_port }} &nbsp;·&nbsp;
+        {{ scan.created_at | dt }} &nbsp;·&nbsp;
+        Duration: {{ scan.duration | dur }}
+      </p>
+    </div>
+    <div class="report-actions d-flex gap-2 flex-shrink-0">
+      <button class="btn btn-ghost btn-sm" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i>Print / PDF
+      </button>
+      <a href="/history/{{ scan.id }}" class="btn btn-ghost btn-sm">
+        <i class="bi bi-table me-1"></i>Detail View
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Section nav (anchor links) -->
+<div class="surface report-nav mb-4">
+  <a href="#overview"        class="report-nav-item"><i class="bi bi-grid-1x2 me-1"></i>Overview</a>
+  <a href="#open-ports"      class="report-nav-item"><i class="bi bi-door-open me-1"></i>Open Ports</a>
+  <a href="#services"        class="report-nav-item"><i class="bi bi-layers me-1"></i>Services</a>
+  {% if all_vulns %}
+  <a href="#vulnerabilities" class="report-nav-item"><i class="bi bi-shield-exclamation me-1"></i>Vulnerabilities</a>
+  {% endif %}
+  <a href="#recommendations" class="report-nav-item"><i class="bi bi-lightbulb me-1"></i>Recommendations</a>
+</div>
+
+<!-- ── Section 1: Overview ─────────────────────────────────────── -->
+<div class="report-section surface mb-4" id="overview">
+  <div class="report-section-header">
+    <i class="bi bi-grid-1x2 report-section-icon text-primary"></i>
+    <h2 class="report-section-title">Overview</h2>
+  </div>
+  <div class="report-section-body">
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <div class="stat-card">
+        <div class="stat-card-body">
+          <div class="stat-card-icon stat-icon-info"><i class="bi bi-hdd-stack"></i></div>
+          <div class="stat-card-content">
+            <span class="stat-label">Ports Scanned</span>
+            <span class="stat-value">{{ scan.total_ports | default(scan.end_port - scan.start_port + 1) }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-body">
+          <div class="stat-card-icon stat-icon-success"><i class="bi bi-door-open"></i></div>
+          <div class="stat-card-content">
+            <span class="stat-label">Open Ports</span>
+            <span class="stat-value">{{ scan.open_count }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-body">
+          <div class="stat-card-icon stat-icon-danger"><i class="bi bi-exclamation-triangle"></i></div>
+          <div class="stat-card-content">
+            <span class="stat-label">Vulnerabilities</span>
+            <span class="stat-value">{{ vuln_count }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-body">
+          <div class="stat-card-icon stat-icon-{{ risk_cls if risk_cls != 'high' else 'warning' }}">
+            <i class="bi bi-shield-check"></i>
+          </div>
+          <div class="stat-card-content">
+            <span class="stat-label">Risk Level</span>
+            <span class="stat-value stat-value-sm">{{ risk_level }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Section 2: Open Ports ──────────────────────────────────── -->
+<div class="report-section surface mb-4" id="open-ports">
+  <div class="report-section-header">
+    <i class="bi bi-door-open report-section-icon text-success"></i>
+    <h2 class="report-section-title">Open Ports</h2>
+    <span class="badge badge-success ms-2">{{ ports | length }}</span>
+  </div>
+  <div class="report-section-body p-0">
+    {% if ports %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Port</th>
+            <th>Protocol</th>
+            <th>Service</th>
+            <th>Banner</th>
+            <th>Vulns</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in ports | sort(attribute='port') %}
+          <tr>
+            <td><span class="mono fw-semibold text-primary">{{ p.port }}</span></td>
+            <td class="text-secondary">{{ p.protocol | upper }}</td>
+            <td>{{ p.service or '—' }}</td>
+            <td class="mono small text-secondary">{{ (p.banner or '')[:80] or '—' }}</td>
+            <td>
+              {% set vc = p.vulnerabilities | length %}
+              {% if vc > 0 %}<span class="badge badge-danger">{{ vc }}</span>
+              {% else %}<span class="text-muted">0</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="table-empty"><i class="bi bi-check-circle text-success" style="font-size:32px"></i><p>No open ports found.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Section 3: Services ────────────────────────────────────── -->
+<div class="report-section surface mb-4" id="services">
+  <div class="report-section-header">
+    <i class="bi bi-layers report-section-icon text-info"></i>
+    <h2 class="report-section-title">Services Detected</h2>
+  </div>
+  <div class="report-section-body">
+    {% if service_counts %}
+    <div class="service-grid">
+      {% for svc, count in service_counts.items() %}
+      <div class="service-chip">
+        <i class="bi bi-circle-fill service-dot"></i>
+        <span class="fw-medium">{{ svc }}</span>
+        <span class="service-count">{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted">No services detected.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Section 4: Vulnerabilities ────────────────────────────── -->
+{% if all_vulns %}
+<div class="report-section surface mb-4" id="vulnerabilities">
+  <div class="report-section-header">
+    <i class="bi bi-shield-exclamation report-section-icon text-danger"></i>
+    <h2 class="report-section-title">Vulnerabilities</h2>
+    <span class="badge badge-danger ms-2">{{ vuln_count }}</span>
+    {% if confirmed_count %}
+    <span class="badge badge-warning ms-1">{{ confirmed_count }} confirmed</span>
+    {% endif %}
+  </div>
+  <div class="report-section-body p-0">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Port</th>
+            <th>Service</th>
+            <th>Vulnerability</th>
+            <th>CVE</th>
+            <th>Status</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in all_vulns %}
+          <tr>
+            <td><span class="mono fw-medium text-primary">{{ v.port }}</span></td>
+            <td>{{ v.service or '—' }}</td>
+            <td class="fw-medium">{{ v.name }}</td>
+            <td>
+              {% if v.cve %}<span class="mono small badge badge-neutral">{{ v.cve }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if v.confirmed %}<span class="badge badge-danger">Confirmed</span>
+              {% else %}<span class="badge badge-warning">Potential</span>{% endif %}
+            </td>
+            <td class="text-secondary small">{{ v.description or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Section 5: Recommendations ────────────────────────────── -->
+<div class="report-section surface mb-4" id="recommendations">
+  <div class="report-section-header">
+    <i class="bi bi-lightbulb report-section-icon text-warning"></i>
+    <h2 class="report-section-title">Recommendations</h2>
+  </div>
+  <div class="report-section-body">
+    <div class="recs-list">
+      {% for rec in recommendations %}
+      <div class="rec-item rec-{{ rec.severity }}">
+        <div class="rec-icon"><i class="bi {{ rec.icon }}"></i></div>
+        <div class="rec-content">
+          <p class="rec-title">{{ rec.title }}</p>
+          <p class="rec-body">{{ rec.body }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="report-footer text-muted small">
+  Generated by <strong>pscan v2</strong> · {{ scan.created_at | dt }} · Scan ID #{{ scan.id }}
+</div>
+{% endblock %}

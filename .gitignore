@@ -1,43 +1,85 @@
-# Ignore Python cache files
+# ── Python cache ─────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+.Python
 
-# Ignore virtual environments
+# ── Virtual environments ──────────────────────────────────────────────
 venv/
 env/
+.venv/
+.env
 
-# Ignore system-specific files
+# ── OS junk ──────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Ignore logs and temporary files
+# ── Logs and temp files ───────────────────────────────────────────────
 *.log
 *.tmp
 *.temp
 *.bak
 *.swp
 
-# Ignore records directory (optional, if you don't want to push scan results)
+# ── Scan output files (generated at runtime) ─────────────────────────
+report.txt
 records/
-records/*.txt
+*.txt.scan
 
-# Ignore egg-info and build artifacts
+# ── Runtime data (generated at scan time — do not commit) ────────────
+data/records/
+data/database/
+data/exports/
+data/logs/
+# Keep directory markers and the vuln DB
+!data/records/.gitkeep
+!data/database/.gitkeep
+!data/exports/.gitkeep
+!data/logs/.gitkeep
+!data/vuln_database.json
+
+# ── Self-hosted vendor assets (large, downloaded separately) ─────────
+frontend/static/vendor/
+frontend/static/fonts/
+frontend/static/icons/
+!frontend/static/vendor/.gitkeep
+!frontend/static/fonts/.gitkeep
+!frontend/static/icons/.gitkeep
+!frontend/static/images/.gitkeep
+
+# ── Build artifacts ───────────────────────────────────────────────────
 *.egg-info/
 build/
 dist/
+.eggs/
 
-# Ignore IDE-specific files
+# ── IDE files ─────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.iml
 
-# Ignore sensitive files (if any)
+# ── Sensitive files ───────────────────────────────────────────────────
 *.key
 *.pem
 *.crt
+*.env
+secrets.json
+data/users.json
 
-# Ignore binary files (if generated)
+# ── Internal notes (not for public repo) ─────────────────────────────
+*prompt*.txt
+docs/V2_DASHBOARD_BRIEF.md
+.mac_original
+
+# ── Testing / coverage ────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ── Binary / archive ─────────────────────────────────────────────────
 *.bin
 *.exe
 *.dll
+*.zip

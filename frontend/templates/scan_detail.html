@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Scan #{{ scan.id }} — {{ scan.target }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator_bootstrap5.min.css" />
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <nav aria-label="breadcrumb" class="mb-1">
+      <ol class="breadcrumb mb-0" style="font-size:13px">
+        <li class="breadcrumb-item"><a href="/history">History</a></li>
+        <li class="breadcrumb-item active">Scan #{{ scan.id }}</li>
+      </ol>
+    </nav>
+    <h1 class="page-title mono">{{ scan.target }}</h1>
+    <p class="page-subtitle">
+      Ports {{ scan.start_port }}–{{ scan.end_port }} &nbsp;·&nbsp;
+      {{ scan.created_at | dt }}
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/reports/{{ scan.id }}" class="btn btn-ghost">
+      <i class="bi bi-file-text me-1"></i>Report
+    </a>
+    <form method="post" action="/history/{{ scan.id }}/delete"
+          onsubmit="return confirm('Delete this scan permanently?')">
+      <button class="btn btn-ghost text-danger" type="submit">
+        <i class="bi bi-trash me-1"></i>Delete
+      </button>
+    </form>
+    <a href="/scan" class="btn btn-primary">
+      <i class="bi bi-radar me-1"></i>New Scan
+    </a>
+  </div>
+</div>
+
+<!-- Summary stat cards -->
+<div class="stat-grid mb-5" style="grid-template-columns: repeat(auto-fit, minmax(160px,1fr))">
+  <div class="stat-card">
+    <div class="stat-card-body">
+      <div class="stat-card-icon stat-icon-primary"><i class="bi bi-door-open"></i></div>
+      <div class="stat-card-content">
+        <span class="stat-label">Open Ports</span>
+        <span class="stat-value">{{ scan.open_count }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-body">
+      <div class="stat-card-icon stat-icon-info"><i class="bi bi-hdd-stack"></i></div>
+      <div class="stat-card-content">
+        <span class="stat-label">Ports Scanned</span>
+        <span class="stat-value">{{ scan.total_ports | default(scan.end_port - scan.start_port + 1) }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-body">
+      <div class="stat-card-icon stat-icon-danger"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="stat-card-content">
+        <span class="stat-label">Vulnerabilities</span>
+        <span class="stat-value">
+          {% set vuln_count = namespace(n=0) %}
+          {% for p in scan.ports %}{% set vuln_count.n = vuln_count.n + p.vulnerabilities | length %}{% endfor %}
+          {{ vuln_count.n }}
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-body">
+      <div class="stat-card-icon stat-icon-success"><i class="bi bi-stopwatch"></i></div>
+      <div class="stat-card-content">
+        <span class="stat-label">Duration</span>
+        <span class="stat-value stat-value-sm">{{ scan.duration | dur }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ports table -->
+<div class="surface mb-4">
+  <div class="table-header">
+    <h2 class="table-title">Open Ports</h2>
+    <div class="d-flex gap-2">
+      <button class="btn btn-ghost btn-sm" id="exportPortsCsv">
+        <i class="bi bi-download me-1"></i>CSV
+      </button>
+    </div>
+  </div>
+
+  {% if scan.ports %}
+  <div id="portsTable"></div>
+  {% else %}
+  <div class="table-empty">
+    <i class="bi bi-check-circle text-success" style="font-size:36px"></i>
+    <p>No open ports found on this target.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Vulnerabilities section -->
+{% set all_vulns = [] %}
+{% for p in scan.ports %}
+  {% for v in p.vulnerabilities %}
+    {% set _ = all_vulns.append({'port': p.port, 'service': p.service, 'name': v.name, 'cve': v.cve, 'description': v.description, 'confirmed': v.confirmed}) %}
+  {% endfor %}
+{% endfor %}
+
+{% if all_vulns %}
+<div class="surface mb-4">
+  <div class="table-header">
+    <h2 class="table-title">Vulnerabilities</h2>
+    <span class="badge badge-danger">{{ all_vulns | length }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Port</th>
+          <th>Service</th>
+          <th>Vulnerability</th>
+          <th>CVE</th>
+          <th>Description</th>
+          <th>Confirmed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in all_vulns %}
+        <tr>
+          <td><span class="mono fw-medium text-primary">{{ v.port }}</span></td>
+          <td>{{ v.service }}</td>
+          <td class="fw-medium">{{ v.name }}</td>
+          <td>
+            {% if v.cve %}
+              <span class="mono small badge badge-neutral">{{ v.cve }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-secondary small">{{ v.description }}</td>
+          <td>
+            {% if v.confirmed %}
+              <span class="badge badge-danger">Confirmed</span>
+            {% else %}
+              <span class="badge badge-warning">Potential</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Raw metadata -->
+<div class="surface">
+  <div class="table-header">
+    <h2 class="table-title">Scan Metadata</h2>
+  </div>
+  <div class="detail-meta-grid">
+    <div class="detail-meta-row">
+      <span class="detail-meta-label">Target</span>
+      <span class="mono">{{ scan.target }}</span>
+    </div>
+    <div class="detail-meta-row">
+      <span class="detail-meta-label">Port Range</span>
+      <span class="mono">{{ scan.start_port }}–{{ scan.end_port }}</span>
+    </div>
+    <div class="detail-meta-row">
+      <span class="detail-meta-label">Started</span>
+      <span>{{ scan.start_time | dt }}</span>
+    </div>
+    <div class="detail-meta-row">
+      <span class="detail-meta-label">Finished</span>
+      <span>{{ scan.end_time | dt }}</span>
+    </div>
+    <div class="detail-meta-row">
+      <span class="detail-meta-label">Duration</span>
+      <span>{{ scan.duration | dur }}</span>
+    </div>
+    <div class="detail-meta-row">
+      <span class="detail-meta-label">Scan ID</span>
+      <span class="mono text-muted">#{{ scan.id }}</span>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if scan.ports %}
+<script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+<script>
+const PORTS_DATA = {{ scan.ports | tojson }};
+
+function vulnBadge(vulns) {
+  const n = (vulns || []).length;
+  if (n === 0) return '<span class="text-muted">0</span>';
+  const cls = n <= 2 ? 'badge-warning' : 'badge-danger';
+  return `<span class="badge ${cls}">${n}</span>`;
+}
+
+const portsTable = new Tabulator('#portsTable', {
+  data: PORTS_DATA,
+  layout: 'fitColumns',
+  initialSort: [{ column: 'port', dir: 'asc' }],
+  columns: [
+    { title: 'Port',     field: 'port',     width: 90,  hozAlign: 'right', sorter: 'number',
+      formatter: cell => `<span class="mono fw-semibold text-primary">${cell.getValue()}</span>` },
+    { title: 'Protocol', field: 'protocol', width: 90 },
+    { title: 'Service',  field: 'service',  minWidth: 120 },
+    { title: 'Banner',   field: 'banner',   minWidth: 220,
+      formatter: cell => {
+        const v = cell.getValue() || '';
+        return `<span class="mono small text-secondary" title="${v.replace(/"/g,"&quot;")}">${v.slice(0, 80) || '—'}</span>`;
+      }
+    },
+    { title: 'Vulns', field: 'vulnerabilities', width: 80, hozAlign: 'center',
+      sorter: (a, b) => (a||[]).length - (b||[]).length,
+      formatter: cell => vulnBadge(cell.getValue())
+    },
+  ],
+});
+
+document.getElementById('exportPortsCsv').addEventListener('click', () => {
+  portsTable.download('csv', 'pscan_ports_{{ scan.id }}.csv');
+});
+</script>
+{% endif %}
+{% endblock %}

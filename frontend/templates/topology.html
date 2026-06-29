@@ -1,0 +1,948 @@
+{% extends "base.html" %}
+{% block title %}Network Topology{% endblock %}
+
+{% block head %}
+<style>
+  .page-content { padding: 0 !important; max-width: none !important; overflow: hidden !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topo-container">
+
+  <!-- ── Left sidebar ────────────────────────────────────────────────── -->
+  <aside class="topo-sidebar" id="topo-sidebar">
+    <div class="topo-sidebar-header">
+      <div class="sidebar-title">
+        <div class="fw-semibold" style="font-size:13px;color:var(--primary);">
+          <i class="bi bi-diagram-3 me-1"></i>Network Topology
+        </div>
+        <div class="text-muted" style="font-size:11px;">SDN-aware live discovery</div>
+      </div>
+      <button class="topo-sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar">
+        <i class="bi bi-chevron-left" id="sidebar-toggle-icon"></i>
+      </button>
+    </div>
+
+  <div class="sidebar-collapsible">
+
+    <!-- Subnet -->
+    <div class="topo-control-group">
+      <label class="topo-label">Subnet</label>
+      <div class="input-group input-group-sm">
+        <input type="text" class="form-control form-control-sm" id="subnet-input"
+               value="{{ subnet }}" placeholder="192.168.1.0/24"
+               style="font-family:monospace;font-size:12px;">
+        <button class="btn btn-outline-secondary btn-sm" title="Reset"
+                onclick="document.getElementById('subnet-input').value='{{ subnet }}'">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+        <i class="bi bi-pc-display me-1"></i>
+        This device: <span style="color:var(--primary);font-family:monospace;">{{ local_ip }}</span>
+      </div>
+    </div>
+
+    <!-- Search / filter -->
+    <div class="topo-control-group">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text" style="background:var(--bg-subtle);border-color:var(--border);">
+          <i class="bi bi-search" style="font-size:11px;color:var(--text-muted);"></i>
+        </span>
+        <input type="text" class="form-control form-control-sm" id="topo-search"
+               placeholder="Filter nodes…" style="font-size:12px;"
+               oninput="filterNodes(this.value)">
+        <button class="btn btn-outline-secondary btn-sm" title="Clear"
+                onclick="filterNodes('');document.getElementById('topo-search').value=''">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-sm w-100" id="btn-discover" onclick="startDiscovery()">
+      <i class="bi bi-radar me-2"></i>Discover Network
+    </button>
+
+    <!-- Stats -->
+    <div id="topo-stats" style="display:none;">
+      <div class="topo-divider"></div>
+      <div class="topo-label">Discovery Results</div>
+      <div class="topo-stat-row">
+        <span class="text-muted" style="font-size:12px;">Total Hosts</span>
+        <span class="fw-semibold" id="stat-total">0</span>
+      </div>
+      <div class="topo-stat-row">
+        <span class="text-muted" style="font-size:12px;">At Risk</span>
+        <span class="fw-semibold text-danger" id="stat-risky">0</span>
+      </div>
+      <div class="topo-stat-row">
+        <span class="text-muted" style="font-size:12px;">Open Ports</span>
+        <span class="fw-semibold" style="color:var(--warning);" id="stat-ports">0</span>
+      </div>
+      <div class="topo-stat-row">
+        <span class="text-muted" style="font-size:12px;">Subnet</span>
+        <span class="fw-medium" style="font-size:11px;font-family:monospace;" id="stat-subnet"></span>
+      </div>
+    </div>
+
+    <!-- SDN Controller Panel -->
+    <div id="sdn-panel" style="display:none;">
+      <div class="topo-divider"></div>
+      <div class="topo-label"><i class="bi bi-hdd-network me-1"></i>SDN Controller</div>
+      <div class="sdn-status-row">
+        <span class="sdn-dot" id="sdn-dot"></span>
+        <span id="sdn-ctrl-text" style="font-size:12px;"></span>
+      </div>
+
+      <div class="topo-divider"></div>
+      <div class="topo-label">Network Segments</div>
+      <div id="sdn-segments" class="sdn-segments"></div>
+
+      <div class="topo-divider"></div>
+      <div class="topo-label">Derived Flow Policies</div>
+      <div id="sdn-policies" class="sdn-policies"></div>
+
+      <div class="topo-divider"></div>
+      <div class="topo-label">Network Health</div>
+      <div class="d-flex justify-content-between mb-1">
+        <span style="font-size:12px;color:var(--text-secondary);">Score</span>
+        <span id="sdn-health-score" class="fw-semibold" style="font-size:13px;">—</span>
+      </div>
+      <div class="progress" style="height:6px;border-radius:3px;">
+        <div id="sdn-health-bar" class="progress-bar" style="width:0%;transition:width .5s ease;"></div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="topo-divider"></div>
+    <div class="topo-label">Device Types</div>
+    <div class="topo-legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span>Router / Gateway</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span>Windows PC</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>Linux / Server</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>Printer</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span>Web Server</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Database</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#06b6d4;"></span>SDN Controller</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#6b7280;"></span>Unknown Host</div>
+    </div>
+
+    <div class="topo-divider"></div>
+    <div class="topo-label">Risk (Node Border)</div>
+    <div class="topo-legend">
+      <div class="legend-item"><span class="legend-ring" style="border-color:#22c55e;"></span>Clean</div>
+      <div class="legend-item"><span class="legend-ring" style="border-color:#f59e0b;"></span>Low</div>
+      <div class="legend-item"><span class="legend-ring" style="border-color:#f97316;"></span>Medium</div>
+      <div class="legend-item"><span class="legend-ring" style="border-color:#ef4444;"></span>High</div>
+    </div>
+
+    <!-- Canvas controls -->
+    <div class="mt-auto">
+      <div class="topo-divider"></div>
+      <div class="topo-label">Layout</div>
+      <div class="d-flex gap-1 flex-wrap mb-2">
+        <button class="btn btn-primary btn-xs layout-btn" data-layout="concentric"
+                onclick="setLayout('concentric',this)">Concentric</button>
+        <button class="btn btn-outline-secondary btn-xs layout-btn" data-layout="breadthfirst"
+                onclick="setLayout('breadthfirst',this)">Tree</button>
+        <button class="btn btn-outline-secondary btn-xs layout-btn" data-layout="cose"
+                onclick="setLayout('cose',this)">Force</button>
+        <button class="btn btn-outline-secondary btn-xs layout-btn" data-layout="grid"
+                onclick="setLayout('grid',this)">Grid</button>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm flex-fill" title="Fit to view"
+                onclick="cy && cy.fit(undefined,60)">
+          <i class="bi bi-fullscreen"></i>
+        </button>
+        <button class="btn btn-outline-secondary btn-sm flex-fill" title="Re-run layout"
+                onclick="runLayout()">
+          <i class="bi bi-arrow-repeat"></i>
+        </button>
+        <button class="btn btn-outline-secondary btn-sm flex-fill" title="Export PNG"
+                onclick="exportPng()">
+          <i class="bi bi-download"></i>
+        </button>
+        <button class="btn btn-outline-danger btn-sm flex-fill" title="Clear"
+                onclick="clearTopology()">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div><!-- /.sidebar-collapsible -->
+  </aside>
+
+  <!-- Sidebar resize handle -->
+  <div class="topo-resize-handle" id="sidebar-resize-handle"></div>
+
+  <!-- ── Canvas ──────────────────────────────────────────────────────── -->
+  <div class="topo-canvas-wrap">
+
+    <div id="mode-banner" class="topo-mode-banner" style="display:none;"></div>
+
+    <div id="cy" class="topo-cy">
+      <div class="topo-empty" id="topo-empty">
+        <i class="bi bi-diagram-3"></i>
+        <p>No topology data</p>
+        <small>Click <strong>Discover Network</strong> to scan your subnet and map all devices</small>
+      </div>
+    </div>
+
+    <!-- Node detail panel -->
+    <div class="topo-detail" id="topo-detail">
+      <div class="detail-hdr">
+        <div class="d-flex align-items-center gap-2">
+          <i id="d-icon" class="bi bi-pc-display fs-5 text-primary"></i>
+          <div>
+            <div id="d-label" class="fw-semibold" style="font-size:13px;"></div>
+            <div id="d-ip" class="text-muted" style="font-size:11px;font-family:monospace;"></div>
+          </div>
+        </div>
+        <button class="btn-close" style="font-size:10px;" onclick="closeDetail()"></button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-kv"><span>Device Name</span><span id="d-name" style="font-weight:600;"></span></div>
+        <div class="detail-kv"><span>Device Type</span><span id="d-type"></span></div>
+        <div class="detail-kv"><span>OS</span><span id="d-os"></span></div>
+        <div class="detail-kv"><span>Risk Level</span><span id="d-risk"></span></div>
+        <div class="detail-kv"><span>Latency</span><span id="d-latency"></span></div>
+        <div class="detail-kv"><span>Hostname</span><span id="d-hostname" style="font-family:monospace;font-size:11px;"></span></div>
+        <div class="detail-kv"><span>MAC Address</span><span id="d-mac" style="font-family:monospace;font-size:11px;"></span></div>
+        <div class="detail-kv"><span>Vendor / Brand</span><span id="d-vendor"></span></div>
+        <div class="detail-kv"><span>Found via</span><span id="d-method"></span></div>
+        <div class="mt-3">
+          <div class="topo-label mb-2">Open Ports</div>
+          <div id="d-ports" class="port-chips"></div>
+        </div>
+      </div>
+      <div class="detail-ftr">
+        <div class="topo-label mb-2">Scan this host</div>
+        <div class="d-flex gap-1">
+          <a id="d-scan-quick" href="#" target="_blank"
+             class="btn btn-outline-primary btn-sm flex-fill" title="Common ports 1-1024">
+            <i class="bi bi-lightning-fill me-1"></i>Quick
+          </a>
+          <a id="d-scan-full" href="#" target="_blank"
+             class="btn btn-primary btn-sm flex-fill" title="All ports 1-65535">
+            <i class="bi bi-search me-1"></i>Full
+          </a>
+          <a id="d-scan-vuln" href="#" target="_blank"
+             class="btn btn-outline-danger btn-sm flex-fill" title="Common ports + vulnerability scan">
+            <i class="bi bi-shield-exclamation me-1"></i>Vuln
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress overlay -->
+    <div class="topo-overlay" id="topo-overlay" style="display:none;">
+      <div class="topo-progress-card">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="spinner-border text-primary spinner-border-sm flex-shrink-0" role="status"></div>
+          <div>
+            <div class="fw-semibold" style="font-size:13px;" id="prog-phase">Scanning subnet…</div>
+            <div class="text-muted" style="font-size:11px;" id="prog-detail">Starting up…</div>
+          </div>
+        </div>
+        <div class="progress" style="height:5px;border-radius:3px;">
+          <div id="prog-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+               style="width:0%;transition:width .25s ease;"></div>
+        </div>
+        <div class="d-flex justify-content-between mt-2" style="font-size:11px;color:var(--text-muted);">
+          <span id="prog-found">Found 0 hosts</span>
+          <span id="prog-pct">0%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='vendor/cytoscape/cytoscape.min.js') }}"></script>
+<script>
+'use strict';
+
+// ── Colour / icon tables ──────────────────────────────────────────────
+const NODE_COLORS = {
+  router:         '#3b82f6',
+  printer:        '#f59e0b',
+  windows_pc:     '#6366f1',
+  linux_server:   '#10b981',
+  linux_host:     '#10b981',
+  web_server:     '#8b5cf6',
+  database:       '#ef4444',
+  sdn_controller: '#06b6d4',
+  host:           '#6b7280',
+  unknown:        '#6b7280',
+};
+
+const RISK_COLORS = {
+  none:   '#22c55e',
+  low:    '#f59e0b',
+  medium: '#f97316',
+  high:   '#ef4444',
+};
+
+const DEVICE_ICONS = {
+  router:         'bi-router',
+  printer:        'bi-printer',
+  windows_pc:     'bi-windows',
+  linux_server:   'bi-terminal',
+  linux_host:     'bi-terminal',
+  web_server:     'bi-globe',
+  database:       'bi-database',
+  sdn_controller: 'bi-hdd-network',
+  host:           'bi-pc-display',
+  unknown:        'bi-question-circle',
+};
+
+const RISK_BADGE = {
+  none:   'badge-neutral',
+  low:    'badge-warning',
+  medium: 'badge-high',
+  high:   'badge-danger',
+};
+
+// ── SVG node icons (white on coloured background) ─────────────────────
+const NODE_SVGS = {
+  router:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<rect x='1' y='6' width='14' height='6' rx='1' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<circle cx='4' cy='9' r='1' fill='white'/><circle cx='7' cy='9' r='1' fill='white'/>` +
+    `<line x1='10' y1='6' x2='10' y2='3' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='8' y1='3' x2='12' y2='3' stroke='white' stroke-width='1.2'/></svg>`,
+
+  windows_pc:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<rect x='1' y='2' width='14' height='9' rx='1' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='5' y1='14' x2='11' y2='14' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='8' y1='11' x2='8' y2='14' stroke='white' stroke-width='1.2'/></svg>`,
+
+  linux_server:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<rect x='1' y='2' width='14' height='4' rx='1' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<rect x='1' y='8' width='14' height='4' rx='1' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<circle cx='13' cy='4' r='0.8' fill='white'/><circle cx='13' cy='10' r='0.8' fill='white'/></svg>`,
+
+  linux_host:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<rect x='1' y='3' width='14' height='9' rx='1' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='4' y1='12' x2='4' y2='14' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='12' y1='12' x2='12' y2='14' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='3' y1='14' x2='13' y2='14' stroke='white' stroke-width='1.2'/></svg>`,
+
+  printer:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<rect x='4' y='1' width='8' height='3' rx='0.5' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<rect x='4' y='10' width='8' height='5' rx='0.5' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<rect x='2' y='4' width='12' height='7' rx='1' fill='none' stroke='white' stroke-width='1.2'/></svg>`,
+
+  web_server:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<circle cx='8' cy='8' r='6' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<ellipse cx='8' cy='8' rx='3' ry='6' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='2' y1='6' x2='14' y2='6' stroke='white' stroke-width='1'/>` +
+    `<line x1='2' y1='10' x2='14' y2='10' stroke='white' stroke-width='1'/></svg>`,
+
+  database:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<ellipse cx='8' cy='4' rx='5' ry='2' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<path d='M3 4v4c0 1.1 2.24 2 5 2s5-.9 5-2V4' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<path d='M3 8v4c0 1.1 2.24 2 5 2s5-.9 5-2V8' fill='none' stroke='white' stroke-width='1.2'/></svg>`,
+
+  sdn_controller:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<rect x='5' y='5' width='6' height='6' rx='1' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='2' y1='2' x2='5' y2='5' stroke='white' stroke-width='1'/>` +
+    `<line x1='14' y1='2' x2='11' y2='5' stroke='white' stroke-width='1'/>` +
+    `<line x1='2' y1='14' x2='5' y2='11' stroke='white' stroke-width='1'/>` +
+    `<line x1='14' y1='14' x2='11' y2='11' stroke='white' stroke-width='1'/></svg>`,
+
+  host:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<rect x='1' y='2' width='14' height='9' rx='1' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='5' y1='14' x2='11' y2='14' stroke='white' stroke-width='1.2'/>` +
+    `<line x1='8' y1='11' x2='8' y2='14' stroke='white' stroke-width='1.2'/></svg>`,
+
+  unknown:
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>` +
+    `<circle cx='8' cy='8' r='6' fill='none' stroke='white' stroke-width='1.2'/>` +
+    `<text x='8' y='12' text-anchor='middle' fill='white' font-size='9' font-weight='bold' font-family='sans-serif'>?</text></svg>`,
+};
+
+function _svgUri(svg) {
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+function _iconStyle(type) {
+  return {
+    selector: `node[device_type = "${type}"]`,
+    style: {
+      'background-image':  _svgUri(NODE_SVGS[type] || NODE_SVGS.unknown),
+      'background-fit':    'contain',
+      'background-width':  '65%',
+      'background-height': '65%',
+    },
+  };
+}
+
+// ── Cytoscape ─────────────────────────────────────────────────────────
+let cy = null;
+let currentLayout = 'concentric';
+
+function initCy() {
+  cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements: [],
+    style: [
+      {
+        selector: 'node',
+        style: {
+          'background-color':   'data(color)',
+          'label':              'data(label)',
+          'font-family':        'Inter, system-ui, sans-serif',
+          'font-size':          '10px',
+          'color':              '#1e293b',
+          'text-valign':        'bottom',
+          'text-margin-y':      '5px',
+          'text-outline-width': '2px',
+          'text-outline-color': '#ffffff',
+          'width':              '44px',
+          'height':             '44px',
+          'border-width':       '3px',
+          'border-color':       'data(riskColor)',
+        },
+      },
+      // Per-type SVG icons
+      _iconStyle('router'),
+      _iconStyle('windows_pc'),
+      _iconStyle('linux_server'),
+      _iconStyle('linux_host'),
+      _iconStyle('printer'),
+      _iconStyle('web_server'),
+      _iconStyle('database'),
+      _iconStyle('sdn_controller'),
+      _iconStyle('host'),
+      _iconStyle('unknown'),
+      // Gateway: diamond, slightly larger, tighter icon
+      {
+        selector: 'node[?is_gateway]',
+        style: {
+          'shape':             'diamond',
+          'width':             '62px',
+          'height':            '62px',
+          'font-size':         '11px',
+          'font-weight':       '600',
+          'border-width':      '4px',
+          'background-width':  '50%',
+          'background-height': '50%',
+        },
+      },
+      // Self: double border
+      {
+        selector: 'node[?is_self]',
+        style: { 'border-style': 'double', 'border-width': '5px' },
+      },
+      {
+        selector: 'node:selected',
+        style: {
+          'border-color':    '#60a5fa',
+          'border-width':    '4px',
+          'overlay-color':   '#60a5fa',
+          'overlay-opacity': '0.08',
+        },
+      },
+      { selector: 'node.dim',       style: { 'opacity': 0.12 } },
+      { selector: 'node.highlight', style: { 'border-color': '#60a5fa', 'border-width': '4px' } },
+      // Edges: directional arrows, risk-coloured, weight by port count
+      {
+        selector: 'edge',
+        style: {
+          'width':              'data(lineWidth)',
+          'line-color':         'data(edgeColor)',
+          'target-arrow-color': 'data(edgeColor)',
+          'target-arrow-shape': 'triangle',
+          'arrow-scale':        0.7,
+          'curve-style':        'bezier',
+          'opacity':            0.65,
+        },
+      },
+      { selector: 'edge.dim', style: { 'opacity': 0.04 } },
+    ],
+    layout: { name: 'preset' },
+    userZoomingEnabled: true,
+    userPanningEnabled: true,
+    minZoom: 0.15,
+    maxZoom: 4,
+  });
+
+  cy.on('tap', 'node', e => showDetail(e.target.data()));
+  cy.on('tap', e => { if (e.target === cy) closeDetail(); });
+}
+
+// ── Graph helpers ─────────────────────────────────────────────────────
+function addNode(d) {
+  if (!cy) initCy();
+  document.getElementById('topo-empty').style.display = 'none';
+  cy.add({
+    group: 'nodes',
+    data: {
+      id:               d.ip,
+      label:            d.label || d.ip,
+      ip:               d.ip,
+      hostname:         d.hostname || '',
+      mac:              d.mac || '',
+      vendor:           d.vendor || '',
+      device_type:      d.device_type || 'host',
+      risk_level:       d.risk_level  || 'none',
+      open_ports:       d.open_ports  || [],
+      latency_ms:       d.latency_ms  || 0,
+      is_gateway:       !!d.is_gateway,
+      is_self:          !!d.is_self,
+      os_hint:          d.os_hint || '',
+      discovery_method: d.discovery_method || 'ping',
+      color:            NODE_COLORS[d.device_type] || '#6b7280',
+      riskColor:        RISK_COLORS[d.risk_level]  || '#22c55e',
+    },
+    position: { x: Math.random() * 500 + 100, y: Math.random() * 400 + 100 },
+  });
+}
+
+function addEdge(src, tgt) {
+  if (!cy) return;
+  // Use attribute selector to handle dots in IP addresses safely
+  const srcEl = cy.$(`[id = "${src}"]`);
+  const tgtEl = cy.$(`[id = "${tgt}"]`);
+  if (!srcEl.length || !tgtEl.length) return;
+  const td        = tgtEl.data();
+  const portCount = (td.open_ports || []).length;
+  const edgeColor = RISK_COLORS[td.risk_level] || '#94a3b8';
+  cy.add({
+    group: 'edges',
+    data: {
+      id:        `${src}-${tgt}`,
+      source:    src,
+      target:    tgt,
+      edgeColor,
+      lineWidth: Math.min(1.2 + portCount * 0.3, 4.5),
+    },
+  });
+}
+
+// ── Layout ────────────────────────────────────────────────────────────
+function setLayout(name, btn) {
+  currentLayout = name;
+  document.querySelectorAll('.layout-btn').forEach(b => {
+    b.classList.remove('btn-primary');
+    b.classList.add('btn-outline-secondary');
+  });
+  btn.classList.remove('btn-outline-secondary');
+  btn.classList.add('btn-primary');
+  runLayout();
+}
+
+function runLayout() {
+  if (!cy || !cy.nodes().length) return;
+  const roots = cy.nodes('[?is_gateway]').length
+    ? cy.nodes('[?is_gateway]')
+    : cy.nodes().first();
+  const nodeCount = cy.nodes().length;
+
+  const defs = {
+    concentric: {
+      name: 'concentric', concentric: n => n.data('is_gateway') ? 10 : 1,
+      levelWidth: () => 1, minNodeSpacing: 70,
+      animate: true, animationDuration: 700, fit: true, padding: 60,
+    },
+    breadthfirst: {
+      name: 'breadthfirst', directed: true, roots,
+      animate: true, animationDuration: 700, fit: true,
+      padding: 60, spacingFactor: 1.4,
+    },
+    cose: {
+      name: 'cose', animate: true, animationDuration: 1000, fit: true,
+      padding: 60, nodeRepulsion: 8000, idealEdgeLength: 120,
+      edgeElasticity: 200, gravity: 80, numIter: 1000,
+    },
+    grid: {
+      name: 'grid', animate: true, animationDuration: 700, fit: true,
+      padding: 60, cols: Math.ceil(Math.sqrt(Math.max(nodeCount, 1))),
+    },
+  };
+  cy.layout(defs[currentLayout] || defs.concentric).run();
+}
+
+function clearTopology() {
+  if (cy) cy.elements().remove();
+  document.getElementById('topo-empty').style.display = 'flex';
+  document.getElementById('topo-stats').style.display = 'none';
+  document.getElementById('sdn-panel').style.display  = 'none';
+  document.getElementById('topo-search').value        = '';
+  closeDetail();
+}
+
+// ── Search / filter ───────────────────────────────────────────────────
+function filterNodes(q) {
+  if (!cy) return;
+  const term = q.toLowerCase().trim();
+  if (!term) {
+    cy.nodes().removeClass('dim highlight');
+    cy.edges().removeClass('dim');
+    return;
+  }
+  cy.nodes().forEach(n => {
+    const d = n.data();
+    const hit =
+      d.ip.includes(term) ||
+      (d.hostname || '').toLowerCase().includes(term) ||
+      (d.device_type || '').replace(/_/g, ' ').toLowerCase().includes(term) ||
+      (d.vendor || '').toLowerCase().includes(term) ||
+      (d.os_hint || '').toLowerCase().includes(term);
+    n.toggleClass('highlight', hit);
+    n.toggleClass('dim', !hit);
+  });
+  cy.edges().forEach(e => {
+    e.toggleClass('dim', e.source().hasClass('dim') || e.target().hasClass('dim'));
+  });
+}
+
+// ── Export PNG ────────────────────────────────────────────────────────
+function exportPng() {
+  if (!cy || !cy.nodes().length) return;
+  const blob = cy.png({ output: 'blob', bg: '#f8fafc', scale: 2 });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), {
+    href:     url,
+    download: `topology-${new Date().toISOString().slice(0,10)}.png`,
+  });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ── Detail panel ──────────────────────────────────────────────────────
+const METHOD_LABELS = {
+  arp_scapy: '<span class="badge" style="background:#16a34a;color:#fff;font-size:10px;">ARP scan</span>',
+  arp_table: '<span class="badge" style="background:#0284c7;color:#fff;font-size:10px;">ARP table</span>',
+  ping:      '<span class="badge" style="background:#6b7280;color:#fff;font-size:10px;">Ping</span>',
+  tcp:       '<span class="badge" style="background:#7c3aed;color:#fff;font-size:10px;">TCP probe</span>',
+};
+
+function showDetail(d) {
+  document.getElementById('d-icon').className =
+    `bi ${DEVICE_ICONS[d.device_type] || 'bi-pc-display'} fs-5 text-primary`;
+  document.getElementById('d-label').textContent    = d.device_name || d.label;
+  document.getElementById('d-ip').textContent       = d.ip;
+  document.getElementById('d-name').textContent     = d.device_name || '—';
+  document.getElementById('d-type').textContent     = (d.device_type || 'host').replace(/_/g, ' ');
+  document.getElementById('d-os').textContent       = d.os_hint || '—';
+  document.getElementById('d-latency').textContent  = d.latency_ms ? `${d.latency_ms} ms` : '—';
+  document.getElementById('d-hostname').textContent = d.hostname || '—';
+  document.getElementById('d-mac').textContent      = d.mac    || '—';
+  document.getElementById('d-vendor').textContent   = d.vendor || '—';
+  document.getElementById('d-method').innerHTML     = METHOD_LABELS[d.discovery_method] || d.discovery_method || '—';
+
+  document.getElementById('d-risk').innerHTML =
+    `<span class="badge ${RISK_BADGE[d.risk_level] || 'badge-neutral'} text-capitalize">${d.risk_level || 'none'}</span>`;
+
+  document.getElementById('d-ports').innerHTML = (d.open_ports && d.open_ports.length)
+    ? d.open_ports.map(p => `<span class="port-chip">${p}</span>`).join('')
+    : '<span class="text-muted" style="font-size:12px;">No open ports found</span>';
+
+  const t = encodeURIComponent(d.ip);
+  document.getElementById('d-scan-quick').href = `/scan?target=${t}&ports=1-1024`;
+  document.getElementById('d-scan-full').href  = `/scan?target=${t}&ports=1-65535`;
+  document.getElementById('d-scan-vuln').href  = `/scan?target=${t}&ports=1-1024&vuln=1`;
+  document.getElementById('topo-detail').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('topo-detail').classList.remove('open');
+  if (cy) cy.$(':selected').unselect();
+}
+
+// ── SDN Controller Panel ──────────────────────────────────────────────
+const TYPE_LABELS = {
+  router:         'Gateway / Router',
+  windows_pc:     'Windows Workstations',
+  linux_server:   'Linux Servers',
+  linux_host:     'Linux Hosts',
+  printer:        'Printers / IoT',
+  web_server:     'Web Servers',
+  database:       'Databases',
+  sdn_controller: 'SDN Controllers',
+  host:           'Unknown Hosts',
+};
+
+const POLICY_PORTS = [
+  { port: 22,   label: 'SSH',       risk: false },
+  { port: 23,   label: 'Telnet',    risk: true  },
+  { port: 21,   label: 'FTP',       risk: true  },
+  { port: 80,   label: 'HTTP',      risk: false },
+  { port: 443,  label: 'HTTPS',     risk: false },
+  { port: 3389, label: 'RDP',       risk: true  },
+  { port: 445,  label: 'SMB',       risk: true  },
+  { port: 3306, label: 'MySQL',     risk: true  },
+  { port: 1433, label: 'MSSQL',     risk: true  },
+  { port: 5900, label: 'VNC',       risk: true  },
+  { port: 8080, label: 'HTTP-Alt',  risk: false },
+  { port: 6633, label: 'OpenFlow',  risk: false },
+  { port: 6653, label: 'OpenFlow2', risk: false },
+];
+
+function buildSdnPanel(nodes, sdnInfo) {
+  document.getElementById('sdn-panel').style.display = '';
+
+  // Controller status
+  const controllers = (sdnInfo && sdnInfo.controllers) || [];
+  const dot  = document.getElementById('sdn-dot');
+  const text = document.getElementById('sdn-ctrl-text');
+  if (controllers.length) {
+    dot.className    = 'sdn-dot sdn-dot-green';
+    text.textContent = `OpenFlow controller at ${controllers[0]}`;
+    text.style.color = '#16a34a';
+  } else {
+    dot.className    = 'sdn-dot sdn-dot-gray';
+    text.textContent = 'No controller detected (standard L2)';
+    text.style.color = 'var(--text-muted)';
+  }
+
+  // Network segments
+  const segMap = {};
+  nodes.forEach(n => { segMap[n.device_type] = (segMap[n.device_type] || 0) + 1; });
+  document.getElementById('sdn-segments').innerHTML =
+    Object.entries(segMap)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) =>
+        `<div class="sdn-segment-row">
+          <span class="sdn-segment-label">
+            <span class="legend-dot" style="background:${NODE_COLORS[type]||'#6b7280'};"></span>
+            ${TYPE_LABELS[type] || type}
+          </span>
+          <span class="sdn-segment-count">${count}</span>
+        </div>`)
+      .join('');
+
+  // Derived flow policies
+  const rows = POLICY_PORTS
+    .map(({ port, label, risk }) => {
+      const count = nodes.filter(n => (n.open_ports || []).includes(port)).length;
+      return count ? { port, label, risk, count } : null;
+    })
+    .filter(Boolean);
+
+  document.getElementById('sdn-policies').innerHTML = rows.length
+    ? rows.map(r =>
+        `<div class="sdn-policy-row">
+          <span style="color:${r.risk ? '#ef4444' : 'var(--text-secondary)'};">
+            ${r.risk ? '&#9888;&nbsp;' : ''}${r.label}/${r.port}
+          </span>
+          <span class="sdn-policy-count">${r.count} host${r.count !== 1 ? 's' : ''}</span>
+        </div>`)
+      .join('')
+    : '<span class="text-muted" style="font-size:12px;">No open services detected</span>';
+
+  // Health score
+  let score = 100;
+  nodes.forEach(n => {
+    if (n.risk_level === 'high')   score -= 20;
+    if (n.risk_level === 'medium') score -= 8;
+    const p = n.open_ports || [];
+    if (p.includes(23))   score -= 10;
+    if (p.includes(21))   score -= 5;
+    if (p.includes(5900)) score -= 5;
+  });
+  score = Math.max(0, Math.min(100, score));
+
+  document.getElementById('sdn-health-score').textContent = `${score} / 100`;
+  const bar = document.getElementById('sdn-health-bar');
+  bar.style.width = `${score}%`;
+  bar.className   = `progress-bar ${score >= 80 ? 'bg-success' : score >= 50 ? 'bg-warning' : 'bg-danger'}`;
+}
+
+// ── Discovery mode banner ─────────────────────────────────────────────
+const MODE_CFG = {
+  arp_scapy: {
+    cls:  'mode-banner-green',
+    icon: 'bi-shield-fill-check',
+    text: 'ARP Discovery Active (Administrator mode) — finds every device regardless of firewall',
+  },
+  arp_table: {
+    cls:  'mode-banner-blue',
+    icon: 'bi-table',
+    text: 'ARP Table + Ping/TCP — recently-seen devices visible. Restart as Administrator for full ARP scan.',
+  },
+  ping: {
+    cls:  'mode-banner-yellow',
+    icon: 'bi-exclamation-triangle-fill',
+    text: 'Ping/TCP only — devices that block ICMP may not appear. Restart as Administrator for better coverage.',
+  },
+};
+
+async function loadCapabilities() {
+  try {
+    const res  = await fetch('/api/topology/capabilities');
+    const caps = await res.json();
+    const cfg  = MODE_CFG[caps.mode] || MODE_CFG.ping;
+    const b    = document.getElementById('mode-banner');
+    b.className   = `topo-mode-banner ${cfg.cls}`;
+    b.innerHTML   = `<i class="bi ${cfg.icon} me-2"></i>${cfg.text}`;
+    b.style.display = 'flex';
+  } catch (_) {}
+}
+
+// ── Discovery (SSE) ───────────────────────────────────────────────────
+async function startDiscovery() {
+  const subnet = document.getElementById('subnet-input').value.trim();
+  if (!subnet) return;
+
+  document.getElementById('btn-discover').disabled      = true;
+  document.getElementById('topo-overlay').style.display = 'flex';
+  document.getElementById('topo-stats').style.display   = 'none';
+  document.getElementById('sdn-panel').style.display    = 'none';
+  document.getElementById('prog-bar').style.width       = '0%';
+  document.getElementById('prog-pct').textContent       = '0%';
+  document.getElementById('prog-found').textContent     = 'Found 0 hosts';
+  closeDetail();
+  if (cy) cy.elements().remove();
+  document.getElementById('topo-empty').style.display = 'none';
+
+  let foundCount = 0;
+
+  try {
+    const res = await fetch('/api/topology/discover', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subnet }),
+    });
+    if (!res.ok) throw new Error('Server error');
+    const { task_id } = await res.json();
+
+    const es = new EventSource(`/api/topology/stream/${task_id}`);
+
+    es.addEventListener('progress', e => {
+      const d   = JSON.parse(e.data);
+      const pct = d.total ? Math.round(d.completed / d.total * 100) : 0;
+      document.getElementById('prog-bar').style.width = pct + '%';
+      document.getElementById('prog-pct').textContent = pct + '%';
+
+      if (d.phase === 'arp') {
+        document.getElementById('prog-phase').textContent  = 'Phase 1 — ARP scan (Scapy)';
+        document.getElementById('prog-detail').textContent = d.ip;
+      } else if (d.phase === 'arp_table') {
+        document.getElementById('prog-phase').textContent  = 'Phase 1 — Reading ARP table';
+        document.getElementById('prog-detail').textContent = d.ip;
+      } else if (d.phase === 'ping') {
+        document.getElementById('prog-phase').textContent  = 'Phase 2 — Ping & TCP sweep';
+        document.getElementById('prog-detail').textContent = `Checking ${d.ip}…`;
+        if (d.alive) {
+          foundCount++;
+          document.getElementById('prog-found').textContent =
+            `Found ${foundCount} host${foundCount !== 1 ? 's' : ''}`;
+        }
+      } else {
+        document.getElementById('prog-phase').textContent  = 'Phase 3 — Port scan & fingerprint';
+        document.getElementById('prog-detail').textContent = `Scanning ${d.ip}…`;
+        document.getElementById('prog-bar').style.width    = '100%';
+      }
+    });
+
+    es.addEventListener('done', e => {
+      es.close();
+      const d = JSON.parse(e.data);
+
+      if (!cy) initCy();
+      d.nodes.forEach(n => addNode(n));
+      d.edges.forEach(edge => addEdge(edge.source, edge.target));
+      runLayout();
+
+      document.getElementById('stat-total').textContent  = d.stats.total;
+      document.getElementById('stat-risky').textContent  = d.stats.risky;
+      document.getElementById('stat-ports').textContent  = d.stats.ports;
+      document.getElementById('stat-subnet').textContent = d.stats.subnet;
+      document.getElementById('topo-stats').style.display   = 'block';
+      document.getElementById('topo-overlay').style.display = 'none';
+      document.getElementById('btn-discover').disabled       = false;
+
+      buildSdnPanel(d.nodes, d.stats.sdn_info || {});
+    });
+
+    es.addEventListener('error', () => {
+      es.close();
+      document.getElementById('prog-phase').textContent  = 'Discovery failed';
+      document.getElementById('prog-detail').textContent = 'Check console for details.';
+      setTimeout(() => {
+        document.getElementById('topo-overlay').style.display = 'none';
+        document.getElementById('btn-discover').disabled       = false;
+      }, 2500);
+    });
+
+    es.onerror = () => {
+      es.close();
+      document.getElementById('topo-overlay').style.display = 'none';
+      document.getElementById('btn-discover').disabled       = false;
+    };
+
+  } catch (err) {
+    console.error('Discovery error:', err);
+    document.getElementById('topo-overlay').style.display = 'none';
+    document.getElementById('btn-discover').disabled       = false;
+  }
+}
+
+// ── Sidebar toggle ────────────────────────────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.getElementById('topo-sidebar');
+  const icon    = document.getElementById('sidebar-toggle-icon');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  icon.className  = collapsed ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
+  document.getElementById('sidebar-toggle').title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  setTimeout(() => { if (cy) cy.resize(); }, 240);
+}
+
+// ── Sidebar resize handle ─────────────────────────────────────────────
+(function () {
+  const handle  = document.getElementById('sidebar-resize-handle');
+  const sidebar = document.getElementById('topo-sidebar');
+  let dragging  = false;
+
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    handle.classList.add('is-dragging');
+    document.body.style.cursor     = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const w = e.clientX - sidebar.getBoundingClientRect().left;
+    if (w >= 160 && w <= 520) {
+      sidebar.style.width = w + 'px';
+      sidebar.classList.remove('collapsed');
+      document.getElementById('sidebar-toggle-icon').className = 'bi bi-chevron-left';
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('is-dragging');
+    document.body.style.cursor     = '';
+    document.body.style.userSelect = '';
+    if (cy) cy.resize();
+  });
+})();
+
+// ── Bug fix: overlay escape hatch ────────────────────────────────────
+document.getElementById('topo-overlay').addEventListener('dblclick', () => {
+  document.getElementById('topo-overlay').style.display   = 'none';
+  document.getElementById('btn-discover').disabled         = false;
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────
+initCy();
+loadCapabilities();
+</script>
+{% endblock %}

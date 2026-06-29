@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Reports</h1>
+    <p class="page-subtitle">Select a scan to view its full security report</p>
+  </div>
+  <a href="/scan" class="btn btn-primary"><i class="bi bi-radar me-1"></i>New Scan</a>
+</div>
+
+{% if scans %}
+<div class="surface">
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Target</th>
+          <th>Port Range</th>
+          <th>Open</th>
+          <th>Vulns</th>
+          <th>Risk</th>
+          <th>Scanned At</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for scan in scans %}
+        {% set vc = scan.vuln_count | default(0) %}
+        {% if vc == 0 %}{% set risk = ('Clean', 'success') %}
+        {% elif vc <= 2 %}{% set risk = ('Low', 'warning') %}
+        {% elif vc <= 5 %}{% set risk = ('Medium', 'high') %}
+        {% else %}{% set risk = ('High', 'danger') %}{% endif %}
+        <tr>
+          <td class="text-muted small">{{ scan.id }}</td>
+          <td><span class="mono fw-medium">{{ scan.target }}</span></td>
+          <td class="text-secondary">{{ scan.start_port }}–{{ scan.end_port }}</td>
+          <td>
+            {% if scan.open_count > 0 %}<span class="badge badge-success">{{ scan.open_count }}</span>
+            {% else %}<span class="text-muted">0</span>{% endif %}
+          </td>
+          <td>
+            {% if vc > 0 %}<span class="badge badge-{{ risk[1] }}">{{ vc }}</span>
+            {% else %}<span class="text-muted">0</span>{% endif %}
+          </td>
+          <td><span class="badge badge-{{ risk[1] }}">{{ risk[0] }}</span></td>
+          <td class="text-secondary">{{ scan.created_at | dt }}</td>
+          <td>
+            <a href="/reports/{{ scan.id }}" class="btn btn-sm btn-ghost">
+              View report <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon"><i class="bi bi-file-text"></i></div>
+  <h2 class="empty-state-title">No scans yet</h2>
+  <p class="empty-state-body">Run a scan to generate your first report.</p>
+  <a href="/scan" class="btn btn-primary"><i class="bi bi-radar me-2"></i>Run a Scan</a>
+</div>
+{% endif %}
+{% endblock %}

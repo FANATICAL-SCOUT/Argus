@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}500 Server Error{% endblock %}
+
+{% block content %}
+<div class="empty-state">
+  <div class="empty-state-icon empty-state-icon-danger">
+    <i class="bi bi-exclamation-octagon"></i>
+  </div>
+  <h2 class="empty-state-title">500 — Server Error</h2>
+  <p class="empty-state-body">Something went wrong on our end. Please try again or restart the dashboard.</p>
+  <a href="/" class="btn btn-primary">
+    <i class="bi bi-house me-2"></i>Back to Dashboard
+  </a>
+</div>
+{% endblock %}

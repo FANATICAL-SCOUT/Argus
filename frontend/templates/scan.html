@@ -1,0 +1,656 @@
+{% extends "base.html" %}
+{% block title %}New Scan{% endblock %}
+
+{% block content %}
+
+<!-- ── Config view (shown initially) ────────────────────────────── -->
+<div id="configView">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">New Scan</h1>
+      <p class="page-subtitle">Configure and launch a live port scan</p>
+    </div>
+  </div>
+
+  <div class="scan-layout">
+    <!-- Form -->
+    <div class="surface scan-form-card" id="scanFormCard">
+      <div class="scan-form-header">
+        <h2 class="scan-form-title">
+          <i class="bi bi-radar me-2 text-primary"></i>Target Configuration
+        </h2>
+      </div>
+
+      <form id="scanForm" novalidate>
+        <div class="form-section">
+          <label class="form-label" for="target">Target Host <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-hdd-network"></i></span>
+            <input type="text" class="form-control form-control-mono" id="target" name="target"
+                   placeholder="192.168.1.1 or hostname.local" required autofocus autocomplete="off" />
+          </div>
+          <div class="form-hint">IPv4 address or resolvable hostname</div>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label" for="port_range">Port Range</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-hash"></i></span>
+            <input type="text" class="form-control form-control-mono" id="port_range" name="port_range"
+                   value="1-1024" placeholder="1-1024" />
+          </div>
+          <div class="form-hint">Format: <code>start-end</code> (e.g. <code>1-65535</code>)</div>
+        </div>
+
+        <div class="form-section">
+          <span class="form-label d-block mb-2">Quick Presets</span>
+          <div class="preset-chips">
+            <button type="button" class="preset-chip" data-range="1-1024">Top 1024</button>
+            <button type="button" class="preset-chip" data-range="1-65535">Full scan</button>
+            <button type="button" class="preset-chip" data-range="21,22,23,25,53,80,110,143,443,445,3389">Common</button>
+            <button type="button" class="preset-chip" data-range="80,443,8080,8443,8000,3000">Web</button>
+            <button type="button" class="preset-chip" data-range="22,3389,5900,23">Remote</button>
+            <button type="button" class="preset-chip preset-chip-danger" id="aggressivePreset"
+                    title="timeout=0.3s, threads=300 — fast but noisy">⚡ Aggressive</button>
+          </div>
+        </div>
+
+        <!-- Vulnerability Detection (main form — visible by default) -->
+        <div class="form-section">
+          <div class="vuln-toggle-row">
+            <div>
+              <label class="form-label mb-1">Vulnerability Detection</label>
+              <div class="form-hint">Match open ports against known CVEs after each port is found</div>
+            </div>
+            <div class="form-check form-switch ms-auto mt-1">
+              <input class="form-check-input" type="checkbox" id="run_vulns" name="run_vulns"
+                     role="switch" value="on" checked />
+              <label class="form-check-label fw-medium" for="run_vulns" id="vulnToggleLabel">On</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Host Alive Check -->
+        <div class="form-section">
+          <div class="vuln-toggle-row">
+            <div>
+              <label class="form-label mb-1">Host Alive Check</label>
+              <div class="form-hint">Ping target before scanning — skip if host is unreachable</div>
+            </div>
+            <div class="form-check form-switch ms-auto mt-1">
+              <input class="form-check-input" type="checkbox" id="ping_check" name="ping_check"
+                     role="switch" value="on" />
+              <label class="form-check-label fw-medium" for="ping_check" id="pingToggleLabel">Off</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <button class="advanced-toggle" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#advancedOptions" aria-expanded="false">
+            <i class="bi bi-sliders me-2"></i>Advanced Options
+            <i class="bi bi-chevron-down ms-auto toggle-chevron"></i>
+          </button>
+          <div class="collapse mt-3" id="advancedOptions">
+
+            <!-- Row 1: Timeout + Threads -->
+            <div class="advanced-grid mb-3">
+              <div>
+                <label class="form-label" for="timeout">Timeout (s)</label>
+                <input type="number" class="form-control" id="timeout" name="timeout"
+                       value="1.0" min="0.1" max="10" step="0.1" />
+                <div class="form-hint">Per-port connection timeout</div>
+              </div>
+              <div>
+                <label class="form-label" for="threads">Threads</label>
+                <input type="number" class="form-control" id="threads" name="threads"
+                       value="100" min="1" max="500" />
+                <div class="form-hint">Concurrent scan threads</div>
+              </div>
+            </div>
+
+            <!-- Row 2: Probe delay only (vuln toggle moved to main form) -->
+            <div class="advanced-grid mb-3">
+              <div>
+                <label class="form-label" for="probe_delay">Probe Delay (s)</label>
+                <input type="number" class="form-control" id="probe_delay" name="probe_delay"
+                       value="0" min="0" max="5" step="0.05" />
+                <div class="form-hint">Delay per thread before connecting — slows scan, reduces IDS noise</div>
+              </div>
+            </div>
+
+            <!-- Scan Modes (informational / capability flags) -->
+            <div class="adv-section-title mb-2">
+              <i class="bi bi-shield-lock me-1 text-primary"></i>Scan Modes
+            </div>
+            <div class="adv-mode-grid mb-2">
+              <div class="adv-mode-card adv-mode-disabled" title="Requires raw sockets (admin/root + Npcap on Windows)">
+                <div class="adv-mode-icon"><i class="bi bi-incognito"></i></div>
+                <div class="adv-mode-body">
+                  <div class="adv-mode-name">Stealth SYN Scan</div>
+                  <div class="adv-mode-desc">Half-open TCP — harder to detect by IDS</div>
+                  <span class="adv-mode-badge">Requires raw sockets</span>
+                </div>
+              </div>
+              <div class="adv-mode-card adv-mode-disabled" title="Sends packets from multiple decoy IPs">
+                <div class="adv-mode-icon"><i class="bi bi-people"></i></div>
+                <div class="adv-mode-body">
+                  <div class="adv-mode-name">Decoy Scan</div>
+                  <div class="adv-mode-desc">Masks real source IP with decoys</div>
+                  <span class="adv-mode-badge">Requires raw sockets</span>
+                </div>
+              </div>
+              <div class="adv-mode-card adv-mode-disabled" title="Spoofs the source MAC address at the OS driver level">
+                <div class="adv-mode-icon"><i class="bi bi-ethernet"></i></div>
+                <div class="adv-mode-body">
+                  <div class="adv-mode-name">MAC Spoof</div>
+                  <div class="adv-mode-desc">Fake source MAC (OS-level, not per-scan)</div>
+                  <span class="adv-mode-badge">OS-level only</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-hint mb-1">
+              <i class="bi bi-info-circle me-1"></i>
+              Raw-socket modes require Administrator/root privileges and Npcap on Windows.
+              They are planned for a future release.
+            </div>
+
+          </div>
+        </div>
+
+        <div class="scan-form-actions">
+          <div id="formError" class="alert alert-danger d-none mb-3" role="alert"></div>
+          <button type="submit" class="btn btn-primary btn-lg w-100" id="scanBtn">
+            <i class="bi bi-radar me-2"></i>Launch Scan
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Info panel -->
+    <aside class="scan-info">
+      <div class="surface info-card">
+        <h3 class="info-title"><i class="bi bi-info-circle me-2 text-primary"></i>Scan Notes</h3>
+        <ul class="info-list">
+          <li>Only scan hosts you own or have explicit written permission to test.</li>
+          <li>Full scans (1–65535) can take several minutes.</li>
+          <li>Results are saved automatically to the database and a text record.</li>
+          <li>Vulnerability matching runs after each open port is found.</li>
+        </ul>
+      </div>
+      <div class="surface info-card">
+        <h3 class="info-title"><i class="bi bi-terminal me-2 text-primary"></i>CLI Equivalent</h3>
+        <pre class="cli-preview" id="cliPreview">pscan 192.168.1.1 -p 1-1024</pre>
+      </div>
+
+      <!-- Active options explain box — hidden when all defaults -->
+      <div class="surface info-card" id="cmdExplainCard" style="display:none;">
+        <h3 class="info-title"><i class="bi bi-info-circle me-2 text-primary"></i>Active Options</h3>
+        <div id="cmdExplainList" class="cmd-explain-list"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ── Live scan view (shown while scanning / after done) ────────── -->
+<div id="scanView" hidden>
+
+  <!-- Status header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title" id="liveTarget">—</h1>
+      <p class="page-subtitle" id="livePortRange">Ports —</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <span class="text-secondary small" id="elapsedDisplay">0s</span>
+      <span id="statusBadge" class="badge badge-info">Scanning…</span>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="surface mb-4 p-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="small text-secondary" id="progressLabel">Initialising…</span>
+      <span class="small fw-semibold text-primary" id="progressPct">0%</span>
+    </div>
+    <div class="progress" style="height:8px;border-radius:4px">
+      <div id="scanProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+           role="progressbar" style="width:0%;background:var(--primary)"></div>
+    </div>
+  </div>
+
+  <!-- Open ports table -->
+  <div class="surface mb-4">
+    <div class="table-header">
+      <h2 class="table-title">Open Ports</h2>
+      <span id="openCountBadge" class="badge badge-success">0 found</span>
+    </div>
+    <div id="noPortsYet" class="table-empty">
+      <i class="bi bi-radar spin-slow"></i>
+      <p class="text-secondary">Scanning… open ports will appear here in real time</p>
+    </div>
+    <div class="table-responsive" id="liveTableWrapper" hidden>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Port</th>
+            <th>Service</th>
+            <th>Banner</th>
+            <th>Vulns</th>
+            <th>Found at</th>
+          </tr>
+        </thead>
+        <tbody id="liveResultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Ping result banner -->
+  <div id="pingResultBanner" class="alert d-none mb-3" role="alert">
+    <i class="bi me-2" id="pingResultIcon"></i>
+    <span id="pingResultMsg"></span>
+  </div>
+
+  <!-- OS fingerprint result (revealed on done) -->
+  <div id="osFingerprintPanel" class="surface mb-4 p-4 d-none">
+    <div class="d-flex align-items-center gap-3">
+      <i class="bi bi-cpu text-primary fs-4"></i>
+      <div>
+        <div class="small text-secondary fw-semibold text-uppercase mb-1">OS Fingerprint (heuristic)</div>
+        <span id="osHintBadge" class="badge badge-info fs-6 px-3 py-2"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SDN policy recommendations (revealed on done when high-risk ports found) -->
+  <div id="sdnRecsPanel" class="surface mb-4 d-none">
+    <div class="table-header">
+      <h2 class="table-title"><i class="bi bi-shield-exclamation me-2 text-danger"></i>SDN Policy Recommendations</h2>
+      <span class="badge badge-danger" id="sdnRuleCount">0 rules</span>
+    </div>
+    <div class="p-3 pb-1">
+      <p class="small text-secondary mb-3">
+        High-risk ports were found. These OpenFlow DROP rules can be applied to your SDN controller to mitigate exposure.
+      </p>
+    </div>
+    <div class="table-responsive">
+      <table class="data-table" id="sdnRulesTable">
+        <thead>
+          <tr>
+            <th>Port</th>
+            <th>Service</th>
+            <th>Risk</th>
+            <th>Recommended Rule</th>
+          </tr>
+        </thead>
+        <tbody id="sdnRulesBody"></tbody>
+      </table>
+    </div>
+    <div class="p-3 pt-2">
+      <button class="btn btn-ghost btn-sm" id="copyOpenflowBtn">
+        <i class="bi bi-clipboard me-1"></i>Copy OpenFlow JSON
+      </button>
+    </div>
+  </div>
+
+  <!-- Error banner (hidden by default) -->
+  <div id="scanErrorBanner" class="alert alert-danger d-none mb-4" role="alert">
+    <i class="bi bi-exclamation-circle-fill me-2"></i>
+    <span id="scanErrorMsg"></span>
+  </div>
+
+  <!-- Done actions (revealed on completion) -->
+  <div id="doneActions" class="d-flex gap-3 flex-wrap" hidden>
+    <a id="historyBtn" href="/history" class="btn btn-primary">
+      <i class="bi bi-clock-history me-2"></i>View in History
+    </a>
+    <a href="/scan" class="btn btn-ghost">
+      <i class="bi bi-radar me-2"></i>New Scan
+    </a>
+    <a href="/" class="btn btn-ghost">
+      <i class="bi bi-grid-1x2 me-2"></i>Dashboard
+    </a>
+  </div>
+
+</div><!-- /scanView -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Pre-fill from URL params (?target= &ports= &vuln=) ─────────── */
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const t = params.get('target');
+  const po = params.get('ports');
+  const v = params.get('vuln');
+  if (t) document.getElementById('target').value = t;
+  if (po) document.getElementById('port_range').value = po;
+  if (v === '1') {
+    const chk = document.getElementById('run_vulns');
+    if (chk) chk.checked = true;
+  }
+  if (t || po) {
+    const range = po || '1-1024';
+    document.getElementById('cliPreview').textContent =
+      `pscan ${t || ''} -p ${range}${v === '1' ? ' -v' : ''}`;
+  }
+})();
+
+/* ── Preset chips ──────────────────────────────────────────────── */
+document.querySelectorAll('.preset-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('port_range').value = btn.dataset.range;
+    updatePreview();
+  });
+});
+
+/* ── Vuln toggle label ─────────────────────────────────────────── */
+const vulnChk   = document.getElementById('run_vulns');
+const vulnLabel = document.getElementById('vulnToggleLabel');
+function updateVulnLabel() {
+  vulnLabel.textContent = vulnChk.checked ? 'On' : 'Off';
+  updatePreview();
+}
+vulnChk.addEventListener('change', updateVulnLabel);
+
+/* ── Ping check toggle label ──────────────────────────────────── */
+const pingChk   = document.getElementById('ping_check');
+const pingLabel = document.getElementById('pingToggleLabel');
+pingChk.addEventListener('change', () => {
+  pingLabel.textContent = pingChk.checked ? 'On' : 'Off';
+  updatePreview();
+});
+
+/* ── Aggressive mode preset ──────────────────────────────────── */
+document.getElementById('aggressivePreset').addEventListener('click', () => {
+  document.getElementById('timeout').value  = '0.3';
+  document.getElementById('threads').value  = '300';
+  // Open advanced options so the user sees what changed
+  const advEl = document.getElementById('advancedOptions');
+  if (advEl && !advEl.classList.contains('show')) {
+    new bootstrap.Collapse(advEl, { toggle: true });
+  }
+  updatePreview();
+});
+
+/* ── Live CLI preview ──────────────────────────────────────────── */
+const targetEl   = document.getElementById('target');
+const rangeEl    = document.getElementById('port_range');
+const previewEl  = document.getElementById('cliPreview');
+
+const _PRESET_LABELS = {
+  '1-1024':  null,
+  '1-65535': { icon: 'bi-exclamation-triangle text-warning', text: 'Full scan (1–65535): probes all TCP ports — can take several minutes on a LAN and longer over WAN.' },
+  '21,22,23,25,53,80,110,143,443,445,3389': { icon: 'bi-shield-exclamation text-danger', text: 'Common preset: targets the most frequently exploited ports including Telnet (23), SMB (445), and RDP (3389).' },
+  '80,443,8080,8443,8000,3000': { icon: 'bi-globe text-primary', text: 'Web preset: scans HTTP/HTTPS ports only — good for auditing web-exposed services.' },
+  '22,3389,5900,23': { icon: 'bi-laptop text-primary', text: 'Remote access preset: SSH, RDP, VNC, and Telnet — these are the most targeted remote management ports.' },
+};
+
+function updatePreview() {
+  const t    = targetEl.value.trim() || '192.168.1.1';
+  const p    = rangeEl.value.trim()  || '1-1024';
+  const noV  = vulnChk && !vulnChk.checked ? ' --no-vulns' : '';
+  const ping = pingChk && pingChk.checked ? ' --ping-check' : '';
+  previewEl.textContent = `pscan ${t} -p ${p}${noV}${ping}`;
+  _updateExplain(p, noV, ping);
+}
+targetEl.addEventListener('input', updatePreview);
+rangeEl.addEventListener('input', updatePreview);
+
+function _updateExplain(portRange, noV, ping) {
+  const items = [];
+
+  const presetInfo = _PRESET_LABELS[portRange];
+  if (presetInfo) items.push(presetInfo);
+
+  const timeoutVal = parseFloat(document.getElementById('timeout').value);
+  const threadsVal = parseInt(document.getElementById('threads').value);
+  const delayVal   = parseFloat(document.getElementById('probe_delay').value);
+
+  if (timeoutVal <= 0.3 && threadsVal >= 200) {
+    items.push({ icon: 'bi-lightning-fill text-danger', text: 'Aggressive mode: 300 threads and 0.3s timeout — very fast but generates significant traffic. Use only on your own LAN.' });
+  } else {
+    if (timeoutVal < 0.5) items.push({ icon: 'bi-clock text-warning', text: `Low timeout (${timeoutVal}s): fast but may miss slow-responding services or WAN targets.` });
+    if (timeoutVal > 2)   items.push({ icon: 'bi-clock text-info',    text: `High timeout (${timeoutVal}s): catches slow-responding hosts but each port takes longer to time out.` });
+    if (threadsVal > 200) items.push({ icon: 'bi-cpu text-warning',   text: `${threadsVal} threads: high concurrency may trigger rate-limiting or firewall bans on the target.` });
+    if (threadsVal < 30)  items.push({ icon: 'bi-cpu text-secondary', text: `${threadsVal} threads: low concurrency — scan will be slow but gentle on the target and network.` });
+  }
+
+  if (delayVal > 0) items.push({ icon: 'bi-hourglass-split text-secondary', text: `Probe delay ${delayVal}s: each thread pauses before connecting — reduces IDS noise and slows scan rate significantly.` });
+  if (noV)   items.push({ icon: 'bi-shield-slash text-secondary', text: 'Vulnerability detection is off — open ports will be listed without CVE matching. Faster, but no vuln data.' });
+  if (ping)  items.push({ icon: 'bi-wifi text-success', text: 'Host alive check: target will be pinged before scanning. Scan aborts automatically if the host is unreachable.' });
+
+  const card = document.getElementById('cmdExplainCard');
+  const list = document.getElementById('cmdExplainList');
+  if (items.length === 0) { card.style.display = 'none'; return; }
+
+  list.innerHTML = items.map(it =>
+    `<div class="cmd-explain-item"><i class="bi ${it.icon} me-2 flex-shrink-0"></i><span>${it.text}</span></div>`
+  ).join('');
+  card.style.display = 'block';
+}
+
+/* ── Wire advanced inputs to preview + explain ─────────────────── */
+['timeout', 'threads', 'probe_delay'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updatePreview);
+});
+
+/* ── Advanced toggle chevron ──────────────────────────────────── */
+const adv = document.getElementById('advancedOptions');
+if (adv) {
+  adv.addEventListener('show.bs.collapse', () => {
+    document.querySelector('.toggle-chevron').style.transform = 'rotate(180deg)';
+  });
+  adv.addEventListener('hide.bs.collapse', () => {
+    document.querySelector('.toggle-chevron').style.transform = '';
+  });
+}
+
+/* ── Form submit → SSE ─────────────────────────────────────────── */
+document.getElementById('scanForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const target    = targetEl.value.trim();
+  const portRange = rangeEl.value.trim();
+  const formErr   = document.getElementById('formError');
+
+  if (!target) {
+    formErr.textContent = 'Target is required.';
+    formErr.classList.remove('d-none');
+    return;
+  }
+  formErr.classList.add('d-none');
+
+  // Switch views
+  document.getElementById('configView').hidden = true;
+  const scanView = document.getElementById('scanView');
+  scanView.hidden = false;
+
+  document.getElementById('liveTarget').textContent   = target;
+  document.getElementById('livePortRange').textContent = 'Ports: ' + portRange;
+
+  // Elapsed timer
+  const startTs = Date.now();
+  const elapsedEl = document.getElementById('elapsedDisplay');
+  const timerInterval = setInterval(() => {
+    const s = Math.round((Date.now() - startTs) / 1000);
+    elapsedEl.textContent = s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+  }, 1000);
+
+  // POST /api/scan
+  const fd = new FormData(e.target);
+  let taskId;
+  try {
+    const resp = await fetch('/api/scan', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      throw new Error(data.error || 'Failed to start scan');
+    }
+    taskId = data.task_id;
+  } catch (err) {
+    clearInterval(timerInterval);
+    _showError(err.message);
+    return;
+  }
+
+  // Open SSE stream
+  const es = new EventSource(`/api/scan/${taskId}/stream`);
+  let openCount = 0;
+
+  es.onmessage = (evt) => {
+    const ev = JSON.parse(evt.data);
+
+    if (ev.type === 'ping') return;
+
+    if (ev.type === 'ping_result') {
+      const banner = document.getElementById('pingResultBanner');
+      const icon   = document.getElementById('pingResultIcon');
+      const msg    = document.getElementById('pingResultMsg');
+      banner.classList.remove('d-none', 'alert-success', 'alert-warning');
+      if (ev.alive) {
+        banner.classList.add('alert-success');
+        icon.className = 'bi bi-check-circle-fill me-2';
+        msg.textContent = `Host is reachable (${ev.latency_ms} ms latency)`;
+      } else {
+        banner.classList.add('alert-warning');
+        icon.className = 'bi bi-exclamation-triangle-fill me-2';
+        msg.textContent = 'Host did not respond to ping — scan aborted. Disable Host Alive Check to force-scan.';
+      }
+      return;
+    }
+
+    if (ev.type === 'progress') {
+      const pct = ev.pct || 0;
+      document.getElementById('scanProgressBar').style.width = pct + '%';
+      document.getElementById('progressLabel').textContent =
+        ev.scanned.toLocaleString() + ' / ' + ev.total.toLocaleString() + ' ports checked';
+      document.getElementById('progressPct').textContent = pct + '%';
+    }
+
+    if (ev.type === 'open_port') {
+      openCount++;
+      document.getElementById('openCountBadge').textContent = openCount + ' found';
+      document.getElementById('noPortsYet').hidden = true;
+      document.getElementById('liveTableWrapper').hidden = false;
+
+      const vuln = ev.vuln_count > 0
+        ? `<span class="badge badge-danger">${ev.vuln_count}</span>`
+        : '<span class="text-muted">0</span>';
+
+      const tr = document.createElement('tr');
+      tr.className = 'row-new';
+      tr.innerHTML =
+        `<td><span class="mono fw-semibold text-primary">${ev.port}</span></td>` +
+        `<td>${ev.service}</td>` +
+        `<td class="mono small text-secondary">${_esc(ev.banner) || '—'}</td>` +
+        `<td>${vuln}</td>` +
+        `<td class="text-muted small">${ev.elapsed}s</td>`;
+      document.getElementById('liveResultsBody').prepend(tr);
+
+      // Brief highlight animation
+      requestAnimationFrame(() => tr.classList.add('row-highlight-anim'));
+    }
+
+    if (ev.type === 'done') {
+      clearInterval(timerInterval);
+      es.close();
+      _setDone(ev.db_id, ev.open_count, ev.duration, ev.os_hint, ev.sdn_rules);
+    }
+
+    if (ev.type === 'error') {
+      clearInterval(timerInterval);
+      es.close();
+      _showError(ev.message);
+    }
+  };
+
+  es.onerror = () => {
+    clearInterval(timerInterval);
+    es.close();
+    if (!document.getElementById('doneActions').hidden) return; // already done
+    _showError('Connection to server lost. The scan may still be running.');
+  };
+});
+
+function _setDone(dbId, openCount, duration, osHint, sdnRules) {
+  const bar = document.getElementById('scanProgressBar');
+  bar.style.width = '100%';
+  bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+
+  const badge = document.getElementById('statusBadge');
+  badge.textContent = 'Complete';
+  badge.className = 'badge badge-success';
+
+  document.getElementById('progressLabel').textContent =
+    'Scan complete — ' + (openCount || 0) + ' open port(s) in ' + duration + 's';
+  document.getElementById('progressPct').textContent = '100%';
+
+  const doneActions = document.getElementById('doneActions');
+  doneActions.hidden = false;
+  if (dbId) {
+    document.getElementById('historyBtn').href = `/history?new=${dbId}`;
+  }
+
+  if (openCount === 0) {
+    document.getElementById('noPortsYet').innerHTML =
+      '<i class="bi bi-check-circle text-success" style="font-size:32px"></i><p>No open ports found</p>';
+    document.getElementById('noPortsYet').hidden = false;
+  }
+
+  // OS fingerprint panel
+  if (osHint) {
+    document.getElementById('osHintBadge').textContent = osHint;
+    document.getElementById('osFingerprintPanel').classList.remove('d-none');
+  }
+
+  // SDN recommendations panel
+  if (sdnRules && sdnRules.length > 0) {
+    const body = document.getElementById('sdnRulesBody');
+    body.innerHTML = '';
+    sdnRules.forEach(rule => {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td><span class="mono fw-semibold text-danger">${rule.port}</span></td>` +
+        `<td>${rule.service || '—'}</td>` +
+        `<td class="small text-secondary">${_esc(rule.reason)}</td>` +
+        `<td class="mono small text-muted">${_esc(rule.rule)}</td>`;
+      body.appendChild(tr);
+    });
+    document.getElementById('sdnRuleCount').textContent = sdnRules.length + ' rule' + (sdnRules.length > 1 ? 's' : '');
+    document.getElementById('sdnRecsPanel').classList.remove('d-none');
+
+    // Copy OpenFlow JSON button
+    document.getElementById('copyOpenflowBtn').addEventListener('click', () => {
+      const json = JSON.stringify(sdnRules.map(r => r.openflow_json), null, 2);
+      navigator.clipboard.writeText(json).then(() => {
+        const btn = document.getElementById('copyOpenflowBtn');
+        btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+        setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy OpenFlow JSON'; }, 2000);
+      });
+    });
+  }
+}
+
+function _showError(msg) {
+  const badge = document.getElementById('statusBadge');
+  badge.textContent = 'Error';
+  badge.className = 'badge badge-danger';
+
+  const bar = document.getElementById('scanProgressBar');
+  bar.style.background = 'var(--danger)';
+  bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+
+  const errEl = document.getElementById('scanErrorBanner');
+  document.getElementById('scanErrorMsg').textContent = msg;
+  errEl.classList.remove('d-none');
+
+  document.getElementById('doneActions').hidden = false;
+}
+
+function _esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 60);
+}
+</script>
+{% endblock %}

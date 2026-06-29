@@ -1,0 +1,1163 @@
+{% extends "base.html" %}
+{% block title %}Help{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Help &amp; Documentation</h1>
+    <p class="page-subtitle">Everything you need to know about using pscan v2.0</p>
+  </div>
+</div>
+
+<!-- ─── Two-column docs layout ───────────────────────────────────── -->
+<div class="help-layout">
+
+  <!-- Left nav (sticky) -->
+  <nav class="help-nav" id="helpNav">
+    <div class="help-nav-label">Pages</div>
+    <a class="help-nav-item" data-section="dashboard"  href="#dashboard">
+      <i class="bi bi-grid-1x2"></i><span>Dashboard</span>
+    </a>
+    <a class="help-nav-item" data-section="new-scan"   href="#new-scan">
+      <i class="bi bi-radar"></i><span>New Scan</span>
+    </a>
+    <a class="help-nav-item" data-section="history"    href="#history">
+      <i class="bi bi-clock-history"></i><span>Scan History</span>
+    </a>
+    <a class="help-nav-item" data-section="reports"    href="#reports">
+      <i class="bi bi-file-text"></i><span>Reports</span>
+    </a>
+    <a class="help-nav-item" data-section="topology"   href="#topology">
+      <i class="bi bi-diagram-3"></i><span>Network Topology</span>
+    </a>
+    <a class="help-nav-item" data-section="controller" href="#controller">
+      <i class="bi bi-cpu"></i><span>SDN Controller</span>
+    </a>
+
+    <div class="help-nav-label mt-3">Reference</div>
+    <a class="help-nav-item" data-section="cli" href="#cli">
+      <i class="bi bi-terminal"></i><span>CLI Usage</span>
+    </a>
+    <a class="help-nav-item" data-section="faq" href="#faq">
+      <i class="bi bi-patch-question"></i><span>FAQ</span>
+    </a>
+  </nav>
+
+  <!-- Right content panels -->
+  <div class="help-content">
+
+    <!-- ─── Dashboard ─────────────────────────────────────────────── -->
+    <div class="help-panel" id="help-dashboard">
+      <div class="help-panel-header">
+        <div class="help-panel-icon" style="background:var(--primary-soft);color:var(--primary);">
+          <i class="bi bi-grid-1x2"></i>
+        </div>
+        <div>
+          <h2 class="help-panel-title">Dashboard</h2>
+          <p class="help-panel-sub">Your network security overview at a glance</p>
+        </div>
+      </div>
+
+      <div class="surface p-4 mb-4">
+        <div class="help-grid">
+          <div>
+            <h4 class="help-h4">Stat Cards</h4>
+            <p>The four summary cards at the top give an instant health check of your scan data:</p>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Card</th><th>What it shows</th><th>What to do</th></tr></thead>
+                <tbody>
+                  <tr><td>Total Scans</td><td>Number of scans ever run</td><td>Track coverage over time</td></tr>
+                  <tr><td>Open Ports Found</td><td>Sum of open ports across all scans</td><td>High number = large attack surface</td></tr>
+                  <tr><td>Vulnerabilities</td><td>Total CVE matches across all scans</td><td>If &gt; 0, open Reports and triage</td></tr>
+                  <tr><td>Last Scan</td><td>Target and time of the most recent scan</td><td>Confirm scans are running regularly</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Services Distribution Chart</h4>
+            <p>A bar chart of the most commonly found services across all your scans. Bars are coloured by service type. <strong>What to look for:</strong></p>
+            <ul class="help-list">
+              <li>A tall bar for <code>netbios-ssn</code>, <code>epmap</code>, or <code>microsoft-ds</code> means Windows file-sharing ports are widely exposed — common ransomware targets.</li>
+              <li><code>unknown</code> services deserve investigation — these are ports with no recognised service banner.</li>
+              <li>High counts for <code>rdp</code> or <code>vnc</code> means many hosts have remote desktop exposed.</li>
+            </ul>
+
+            <h4 class="help-h4 mt-4">Risk Distribution Chart</h4>
+            <p>A doughnut showing how many of your scans fall into each risk category. A fully grey doughnut means all scans came back clean. A slice of red means at least one scan hit high-severity CVEs.</p>
+
+            <h4 class="help-h4 mt-4">Recent Scans Table</h4>
+            <p>Lists the last 10 scans with target, port range, open port count, vulnerability count, and timestamp. Row actions:</p>
+            <ul class="help-list">
+              <li><i class="bi bi-eye text-primary"></i> <strong>Eye icon</strong> — raw detail view (banners, CVE list, full metadata)</li>
+              <li><i class="bi bi-file-text text-primary"></i> <strong>Report icon</strong> — formatted security assessment</li>
+            </ul>
+
+            <h4 class="help-h4 mt-4">Navigation</h4>
+            <p>Use the left sidebar. On desktop, click the hamburger (<i class="bi bi-list"></i>) below the pscan logo to collapse it to icons-only — useful for smaller screens. Your collapse preference is saved in the browser.</p>
+          </div>
+          <div class="help-tip-box">
+            <div class="help-tip-title"><i class="bi bi-lightbulb me-1"></i>Tips</div>
+            <ul class="help-list">
+              <li>Click <strong>+ New Scan</strong> in the top-right at any time to start a scan without navigating away.</li>
+              <li>A red vulnerability badge = critical CVEs matched. Open the Report for that scan immediately.</li>
+              <li>Dashboard stats include <em>all</em> historical scans, not just today's. Run more scans to build a complete picture of your network.</li>
+              <li>Bookmark <code>/</code> as your start page — the dashboard gives you the fastest overview.</li>
+            </ul>
+            <div class="help-tip-title mt-4"><i class="bi bi-question-circle me-1"></i>What to do first</div>
+            <ul class="help-list">
+              <li>Click <strong>New Scan</strong> and scan your gateway (<code>192.168.1.1</code>) to see what the router is exposing.</li>
+              <li>Then scan your own machine IP to audit your own exposed services.</li>
+              <li>Check Reports for any scan that shows a non-zero vulnerability count.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── New Scan ──────────────────────────────────────────────── -->
+    <div class="help-panel" id="help-new-scan">
+      <div class="help-panel-header">
+        <div class="help-panel-icon" style="background:var(--success-soft);color:var(--success);">
+          <i class="bi bi-radar"></i>
+        </div>
+        <div>
+          <h2 class="help-panel-title">New Scan</h2>
+          <p class="help-panel-sub">Configure and launch a live TCP connect-scan</p>
+        </div>
+      </div>
+
+      <div class="surface p-4 mb-4">
+        <div class="help-grid">
+          <div>
+            <h4 class="help-h4">Target Host</h4>
+            <p>Enter an <strong>IPv4 address</strong> (e.g. <code>192.168.1.1</code>) or a <strong>resolvable hostname</strong> (e.g. <code>myserver.local</code>). You must own or have explicit written permission to scan the target.</p>
+
+            <h4 class="help-h4 mt-4">Port Range</h4>
+            <p>Format: <code>start-end</code> (e.g. <code>1-1024</code>) or a comma-separated list of specific ports (e.g. <code>80,443,8080</code>). The scanner probes every listed TCP port.</p>
+
+            <h4 class="help-h4 mt-4">Quick Presets</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Preset</th><th>Ports</th><th>Best for</th></tr></thead>
+                <tbody>
+                  <tr><td>Top 1024</td><td>1–1024</td><td>Fast sweep of well-known services</td></tr>
+                  <tr><td>Full Scan</td><td>1–65535</td><td>Complete coverage (takes several minutes)</td></tr>
+                  <tr><td>Common</td><td>21,22,23,25,53,80,110,143,443,445,3389</td><td>Most commonly exploited ports</td></tr>
+                  <tr><td>Web</td><td>80,443,8080,8443,8000,3000</td><td>HTTP/HTTPS services only</td></tr>
+                  <tr><td>Remote</td><td>22,3389,5900,23</td><td>SSH, RDP, VNC, Telnet</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Vulnerability Detection toggle</h4>
+            <p>When <strong>On</strong> (default), pscan checks each open port against a built-in CVE database immediately after finding it. You see vulnerability counts in real time during the scan. Turn it <strong>Off</strong> when you only need port discovery — this can cut scan time in half on large port ranges since CVE matching adds processing per port.</p>
+
+            <h4 class="help-h4 mt-4">Host Alive Check toggle</h4>
+            <p>When <strong>On</strong>, pscan first sends an ICMP ping to the target before starting the port scan. If the host doesn't respond (offline, ICMP blocked, wrong IP), the scan aborts with a clear message. Turn it <strong>Off</strong> if you know the host is up but ICMP is firewalled — many corporate devices block ping but still have open TCP ports.</p>
+
+            <h4 class="help-h4 mt-4">Quick Presets</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Preset</th><th>Ports</th><th>Best for</th><th>Caution</th></tr></thead>
+                <tbody>
+                  <tr><td>Top 1024</td><td>1–1024</td><td>Fast standard sweep</td><td>—</td></tr>
+                  <tr><td>Full scan</td><td>1–65535</td><td>Complete coverage</td><td>Takes minutes; generates lots of traffic</td></tr>
+                  <tr><td>Common</td><td>21,22,23,…,3389</td><td>Most-exploited ports</td><td>Includes Telnet/SMB — high-risk finds likely</td></tr>
+                  <tr><td>Web</td><td>80,443,8080…</td><td>Web server audit</td><td>Misses backend services</td></tr>
+                  <tr><td>Remote</td><td>22,3389,5900,23</td><td>Remote access audit</td><td>RDP/VNC findings = immediate action</td></tr>
+                  <tr><td>⚡ Aggressive</td><td>current range</td><td>Maximum speed on LAN</td><td>Noisy — can trigger IDS/firewalls; WAN unsafe</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Advanced Options</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Option</th><th>Default</th><th>When to change</th></tr></thead>
+                <tbody>
+                  <tr><td>Timeout (s)</td><td>1.0</td><td>Raise to 3–5 s for WAN targets or slow VMs. Lower to 0.3 s for aggressive LAN sweeps.</td></tr>
+                  <tr><td>Threads</td><td>100</td><td>Raise for faster full scans on LAN. Lower to 25–50 on slow or congested networks.</td></tr>
+                  <tr><td>Probe Delay (s)</td><td>0</td><td>Set 0.05–0.2 s to reduce the traffic burst — useful when scanning near IDS/IPS devices.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">CLI Equivalent box</h4>
+            <p>The <strong>CLI Equivalent</strong> panel on the right updates live as you change settings. It shows the exact terminal command you can copy and run. Below it, the <strong>Active Options</strong> box explains each non-default setting in plain English — handy when you want to understand what a preset or toggle does before launching.</p>
+
+            <h4 class="help-h4 mt-4">Scan Modes (CLI-only)</h4>
+            <p>These are shown as informational cards in the GUI but require elevated privileges. Use them from the CLI as Administrator/root:</p>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Mode</th><th>CLI flag</th><th>How it works</th><th>Requirement</th></tr></thead>
+                <tbody>
+                  <tr><td>Stealth SYN</td><td>*(planned)*</td><td>SYN only — never completes handshake; services don't log the connection</td><td>Admin + Npcap/libpcap</td></tr>
+                  <tr><td>Decoy Scan</td><td><code>-D 5</code></td><td>Sends probes from 5 random spoofed IPs alongside real probes</td><td>Admin + Npcap/libpcap</td></tr>
+                  <tr><td>MAC Spoof</td><td><code>-m random</code></td><td>Changes NIC MAC address OS-wide before scanning</td><td>Admin, local subnet only</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Live Scan View</h4>
+            <p>After launching, the page switches to live view. You'll see:</p>
+            <ul class="help-list">
+              <li><strong>Progress bar</strong> — shows percentage of ports probed and elapsed time</li>
+              <li><strong>Open ports table</strong> — each open port appears here in real time, with service name, banner, and vulnerability count</li>
+              <li><strong>OS fingerprint</strong> — after the scan completes, pscan guesses the OS from the set of open ports (heuristic, not definitive)</li>
+              <li><strong>SDN Recommendations</strong> — if high-risk ports were found, OpenFlow DROP rule suggestions appear automatically</li>
+              <li><strong>Done actions</strong> — View in History, start a new scan, or return to Dashboard</li>
+            </ul>
+          </div>
+          <div class="help-tip-box">
+            <div class="help-tip-title"><i class="bi bi-shield-exclamation me-1 text-danger"></i>Legal &amp; Ethics</div>
+            <ul class="help-list">
+              <li>Only scan hosts <strong>you own</strong> or have <strong>explicit written permission</strong> to test.</li>
+              <li>Unauthorized port scanning may be illegal in your jurisdiction.</li>
+              <li>Results are saved to the local database — treat them as sensitive security data.</li>
+            </ul>
+            <div class="help-tip-title mt-4"><i class="bi bi-lightbulb me-1"></i>Tips</div>
+            <ul class="help-list">
+              <li>The <strong>CLI Equivalent</strong> box on the right of the form updates live as you change settings.</li>
+              <li>Use <em>Aggressive</em> preset (low timeout, high threads) only on your own LAN — WAN hosts need a higher timeout.</li>
+              <li>All scans are saved automatically — no need to export before closing the tab.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Scan History ──────────────────────────────────────────── -->
+    <div class="help-panel" id="help-history">
+      <div class="help-panel-header">
+        <div class="help-panel-icon" style="background:var(--info-soft);color:var(--info);">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <div>
+          <h2 class="help-panel-title">Scan History</h2>
+          <p class="help-panel-sub">Browse, filter, and manage all past scans</p>
+        </div>
+      </div>
+
+      <div class="surface p-4 mb-4">
+        <div class="help-grid">
+          <div>
+            <h4 class="help-h4">What is Scan History?</h4>
+            <p>Scan History is your <strong>technical database</strong> of every scan you have run. It is designed for <em>you</em> (the operator) to browse raw data, compare scans over time, delete old records, and export data for further analysis. Think of it as your scan log.</p>
+            <p class="mt-2"><strong>How it differs from Reports:</strong> History shows you the raw technical output — exact port numbers, service banners, CVE IDs, timestamps. Reports format the same scan into a narrative security assessment suitable for sharing with stakeholders.</p>
+
+            <h4 class="help-h4 mt-4">Table Columns</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+                <tbody>
+                  <tr><td>#</td><td>Auto-increment database ID</td></tr>
+                  <tr><td>Target</td><td>IP or hostname that was scanned</td></tr>
+                  <tr><td>Port Range</td><td>Start–end range that was probed</td></tr>
+                  <tr><td>Open</td><td>Open TCP ports found (green badge)</td></tr>
+                  <tr><td>Vulns</td><td>CVEs matched — yellow (low) · orange (medium) · red (high)</td></tr>
+                  <tr><td>Duration</td><td>Total wall-clock time</td></tr>
+                  <tr><td>Scanned At</td><td>Completion timestamp</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Row Actions</h4>
+            <ul class="help-list">
+              <li><i class="bi bi-file-text text-primary"></i> <strong>Report icon</strong> — open the formatted security report (risk level, recommendations)</li>
+              <li><i class="bi bi-eye text-primary"></i> <strong>Eye icon</strong> — open the raw detail view (full ports table, banners, vuln list, metadata)</li>
+              <li><i class="bi bi-trash text-danger"></i> <strong>Trash icon</strong> — permanently delete scan and all its data</li>
+            </ul>
+
+            <h4 class="help-h4 mt-4">Risk Filter</h4>
+            <ul class="help-list">
+              <li><span class="badge badge-success me-1">Clean</span> 0 vulns found</li>
+              <li><span class="badge badge-warning me-1">Low</span> 1–2 vulns</li>
+              <li><span class="badge badge-high me-1">Medium</span> 3–5 vulns</li>
+              <li><span class="badge badge-danger me-1">High</span> 6+ vulns</li>
+            </ul>
+
+            <h4 class="help-h4 mt-4">Search &amp; Export</h4>
+            <p>Type in <em>Search targets</em> to filter by IP or hostname. Use the <em>Export</em> dropdown to download the current (filtered) view as <strong>CSV</strong> or <strong>JSON</strong>. Click any column header to sort.</p>
+          </div>
+          <div class="help-tip-box">
+            <div class="help-tip-title"><i class="bi bi-lightbulb me-1"></i>Tips</div>
+            <ul class="help-list">
+              <li>Click a column header to sort. The table defaults to newest-first.</li>
+              <li>A scan highlighted in blue just completed and was saved.</li>
+              <li>Use the Risk filter with "High" to quickly focus on scans that need attention.</li>
+              <li>The Export button respects your current filters — filter first, then export.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Reports ───────────────────────────────────────────────── -->
+    <div class="help-panel" id="help-reports">
+      <div class="help-panel-header">
+        <div class="help-panel-icon" style="background:var(--warning-soft);color:var(--warning);">
+          <i class="bi bi-file-text"></i>
+        </div>
+        <div>
+          <h2 class="help-panel-title">Reports</h2>
+          <p class="help-panel-sub">Formatted security assessments with remediation advice</p>
+        </div>
+      </div>
+
+      <div class="surface p-4 mb-4">
+        <div class="help-grid">
+          <div>
+            <h4 class="help-h4">What is a Report?</h4>
+            <p>A Report is a <strong>formatted security assessment</strong> generated from one scan. Unlike the raw Scan History detail view, a report is designed to be <em>shared</em> — with a manager, client, or audit team. It includes a risk badge, narrative descriptions, and auto-generated remediation steps.</p>
+
+            <h4 class="help-h4 mt-4">Report Sections</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Section</th><th>Contents</th></tr></thead>
+                <tbody>
+                  <tr><td>Overview</td><td>Risk level badge, stat cards (ports scanned, open ports, vulnerabilities, duration)</td></tr>
+                  <tr><td>Open Ports</td><td>Port number, protocol, service name, and grabbed banner for each open port</td></tr>
+                  <tr><td>Services</td><td>Breakdown of discovered services and their risk level</td></tr>
+                  <tr><td>Vulnerabilities</td><td>CVE ID, name, confidence (Confirmed / Potential), and description</td></tr>
+                  <tr><td>Recommendations</td><td>Auto-generated remediation steps based on services and vulns found</td></tr>
+                  <tr><td>Scan Metadata</td><td>Target, port range, start/end timestamps, scan ID</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Risk Levels</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Badge</th><th>Vuln Count</th><th>What it means</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="badge badge-success">Clean</span></td><td>0</td><td>No CVE matches — lowest risk</td></tr>
+                  <tr><td><span class="badge badge-warning">Low Risk</span></td><td>1–2</td><td>Minor issues, review recommended</td></tr>
+                  <tr><td><span class="badge badge-high">Medium Risk</span></td><td>3–5</td><td>Notable findings, prioritise patching</td></tr>
+                  <tr><td><span class="badge badge-danger">High Risk</span></td><td>6+</td><td>Critical — immediate action needed</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Vulnerability Confidence</h4>
+            <ul class="help-list">
+              <li><span class="badge badge-danger me-1">Confirmed</span> — banner matched a known vulnerable version string. High confidence; verify before patching.</li>
+              <li><span class="badge badge-warning me-1">Potential</span> — service type matched a vulnerability category but version could not be confirmed from the banner. Always verify manually.</li>
+            </ul>
+
+            <h4 class="help-h4 mt-4">Print / Export as PDF</h4>
+            <p>Click <strong>Print / PDF</strong> in the report header. The sidebar and controls hide automatically for a clean printout. Use your browser's "Save as PDF" option to create a shareable PDF file.</p>
+          </div>
+          <div class="help-tip-box">
+            <div class="help-tip-title"><i class="bi bi-lightbulb me-1"></i>Tips</div>
+            <ul class="help-list">
+              <li><strong>Potential</strong> findings can be false positives — banner grabbing is imperfect. Always verify before acting.</li>
+              <li>Use the <em>Detail View</em> button in the report to jump back to the raw scan data.</li>
+              <li>The Reports index lets you filter by target IP to see all historical reports for one host.</li>
+            </ul>
+            <div class="help-tip-title mt-4"><i class="bi bi-arrow-left-right me-1"></i>History vs Reports</div>
+            <ul class="help-list">
+              <li><strong>History</strong> = raw data log for the operator (you)</li>
+              <li><strong>Reports</strong> = formatted assessment for sharing with others</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Network Topology ──────────────────────────────────────── -->
+    <div class="help-panel" id="help-topology">
+      <div class="help-panel-header">
+        <div class="help-panel-icon" style="background:var(--success-soft);color:var(--success);">
+          <i class="bi bi-diagram-3"></i>
+        </div>
+        <div>
+          <h2 class="help-panel-title">Network Topology</h2>
+          <p class="help-panel-sub">Discover and visualise hosts on your local network</p>
+        </div>
+      </div>
+
+      <div class="surface p-4 mb-4">
+        <div class="help-grid">
+          <div>
+            <h4 class="help-h4">What is Network Topology?</h4>
+            <p>Network Topology discovers every live host on your subnet and draws them as an interactive graph. It answers "what devices are on this network?" before you decide which ones to scan in detail — a LAN census that tells you what exists and what type of device it is.</p>
+
+            <h4 class="help-h4 mt-4">Discovery Tiers</h4>
+            <p>pscan uses three discovery methods simultaneously and merges the results:</p>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Tier</th><th>Method</th><th>Requires</th><th>What it finds</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>ARP scan (Scapy)</td><td>Admin + Npcap</td><td>Every device on the subnet — firewall-independent</td></tr>
+                  <tr><td>2</td><td>OS ARP table read</td><td>Nothing (always runs)</td><td>Recently-seen devices cached by the OS; captures MAC addresses</td></tr>
+                  <tr><td>3</td><td>ICMP ping + TCP probe</td><td>Nothing (always runs)</td><td>Any host that responds to ping or common TCP ports</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="mt-2" style="font-size:13px;color:var(--text-secondary);">A banner at the top of the canvas shows which tier is active. Run pscan as Administrator for Tier 1 (best coverage). Tier 2+3 always run regardless.</p>
+
+            <h4 class="help-h4 mt-4">Device Fingerprinting</h4>
+            <p>After discovery, pscan port-scans each host on 27 fingerprint ports and classifies it:</p>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Device Type</th><th>Detection signals</th></tr></thead>
+                <tbody>
+                  <tr><td>Router / Gateway</td><td>Gateway IP position, or Cisco/Huawei MAC vendor</td></tr>
+                  <tr><td>Windows PC</td><td>RDP (3389), SMB (445/135)</td></tr>
+                  <tr><td>Linux Server</td><td>SSH + HTTP/S</td></tr>
+                  <tr><td>Web Server</td><td>HTTP/HTTPS only</td></tr>
+                  <tr><td>Database</td><td>MySQL (3306) or MSSQL (1433)</td></tr>
+                  <tr><td>Printer</td><td>IPP (631), JetDirect (9100), LPD (515)</td></tr>
+                  <tr><td>VMware ESXi</td><td>Port 902</td></tr>
+                  <tr><td>SDN Controller</td><td>OpenFlow (6633/6653), ONOS/ODL REST (8181)</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="mt-2" style="font-size:13px;color:var(--text-secondary);">OS hint comes from port patterns first, then TTL value from the ping response (128 → Windows, 64 → Linux/macOS, 255 → Network Device). Vendor name comes from the MAC OUI prefix lookup.</p>
+
+            <h4 class="help-h4 mt-4">Graph View</h4>
+            <ul class="help-list">
+              <li><strong>Node colour</strong> — device type (blue=router, indigo=Windows, green=Linux/server, teal=SDN, etc.)</li>
+              <li><strong>Node border colour</strong> — risk level (green=clean, yellow=low, orange=medium, red=high)</li>
+              <li><strong>Gateway node</strong> — diamond shape, larger; all edges point from gateway to hosts</li>
+              <li><strong>This device</strong> — double border ring</li>
+              <li><strong>Edge width</strong> — scales with target's open port count; thicker = more services</li>
+              <li><strong>Edge colour</strong> — matches target's risk level</li>
+              <li>Click any node to open the detail panel (IP, MAC, vendor, OS hint, open ports)</li>
+            </ul>
+
+            <h4 class="help-h4 mt-4">Graph Controls</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Control</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td>Layout buttons (Concentric / Tree / Force / Grid)</td><td>Switch the graph arrangement; animates smoothly</td></tr>
+                  <tr><td>Filter nodes… input</td><td>Type an IP, hostname, vendor, or device type — non-matching nodes dim out</td></tr>
+                  <tr><td>Fit <i class="bi bi-fullscreen"></i></td><td>Zoom to fit all nodes in view</td></tr>
+                  <tr><td>Re-run layout <i class="bi bi-arrow-repeat"></i></td><td>Re-apply the current layout algorithm</td></tr>
+                  <tr><td>Export PNG <i class="bi bi-download"></i></td><td>Save the current graph as a 2× resolution PNG</td></tr>
+                  <tr><td>Clear <i class="bi bi-trash"></i></td><td>Reset the canvas for a new discovery</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">SDN Controller Sidebar Panel</h4>
+            <p>After every discovery, the sidebar shows a real-time analysis of your network:</p>
+            <ul class="help-list">
+              <li><strong>Controller Detection</strong> — green dot if an OpenFlow/ONOS node was found; grey if standard L2 network</li>
+              <li><strong>Network Segments</strong> — device type breakdown with host counts and colour codes</li>
+              <li><strong>Derived Flow Policies</strong> — which services (SSH, Telnet, RDP, SMB…) are exposed across how many hosts; risky services flagged in red</li>
+              <li><strong>Network Health Score</strong> — 0–100 score; loses points for high-risk hosts and dangerous open services (Telnet, FTP, VNC)</li>
+            </ul>
+          </div>
+          <div class="help-tip-box">
+            <div class="help-tip-title"><i class="bi bi-lightbulb me-1"></i>Tips</div>
+            <ul class="help-list">
+              <li>Run pscan as <strong>Administrator</strong> to enable Tier 1 ARP scanning — it finds devices that block ICMP (printers, IoT, firewalled hosts).</li>
+              <li>Start with <code>/24</code> for a fast LAN sweep (~30 s). Only use <code>/16</code> when you need corporate-wide coverage.</li>
+              <li>Use the <strong>Filter</strong> bar to find a specific IP or vendor instantly in large topologies.</li>
+              <li>Click any node → <em>Full Port Scan</em> to immediately deep-scan that host.</li>
+              <li>Use <strong>Export PNG</strong> to save the topology for documentation or incident reports.</li>
+            </ul>
+            <div class="help-tip-title mt-4"><i class="bi bi-shield-exclamation me-1 text-warning"></i>Red flags</div>
+            <ul class="help-list">
+              <li>An unknown IP node = possible rogue device — investigate immediately.</li>
+              <li>Any host with a <strong>red border</strong> (high risk) should be prioritised for a full scan.</li>
+              <li>Health score below 50 = multiple dangerous services exposed — check Derived Flow Policies for specifics.</li>
+              <li>An SDN Controller detected on an unexpected IP = misconfigured or rogue controller.</li>
+            </ul>
+            <div class="help-tip-title mt-4"><i class="bi bi-info-circle me-1 text-primary"></i>Discovery mode banner</div>
+            <ul class="help-list">
+              <li><span style="color:#166534;">Green</span> — ARP scan active; fullest coverage</li>
+              <li><span style="color:#075985;">Blue</span> — ARP table + ping/TCP; good coverage, no Scapy needed</li>
+              <li><span style="color:#92400e;">Yellow</span> — ping/TCP only; may miss firewalled/sleeping devices</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SDN Controller ────────────────────────────────────────── -->
+    <div class="help-panel" id="help-controller">
+      <div class="help-panel-header">
+        <div class="help-panel-icon" style="background:var(--danger-soft);color:var(--danger);">
+          <i class="bi bi-cpu"></i>
+        </div>
+        <div>
+          <h2 class="help-panel-title">SDN Controller</h2>
+          <p class="help-panel-sub">OpenFlow 1.3 — software-defined network management console</p>
+        </div>
+      </div>
+
+      <div class="surface p-4 mb-4">
+        <div class="help-grid">
+          <div>
+            <h4 class="help-h4">What is SDN?</h4>
+            <p><strong>Software-Defined Networking (SDN)</strong> separates the network's control plane (decisions about where traffic goes) from the data plane (the physical forwarding of packets). Instead of configuring each switch individually, an SDN controller pushes <em>flow rules</em> to all managed devices centrally. <strong>OpenFlow 1.3</strong> is the standard protocol used to communicate between the controller and switches.</p>
+            <p class="mt-2">pscan's SDN Controller page translates your scan findings into OpenFlow-style flow table entries — giving you a security-lens view of what rules should be applied to your network based on what pscan discovered.</p>
+
+            <h4 class="help-h4 mt-4">Status Banner</h4>
+            <p>Shows controller health at a glance: active/inactive status, uptime since first scan, controller address (<code>127.0.0.1:6633</code> — the standard OpenFlow port), and protocol version. The controller is "active" as long as you have scan data in the database.</p>
+
+            <h4 class="help-h4 mt-4">Metric Cards</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Metric</th><th>What it represents</th><th>What it tells you</th></tr></thead>
+                <tbody>
+                  <tr><td>Connected Nodes</td><td>Distinct hosts scanned at least once</td><td>How many devices are in your scan inventory</td></tr>
+                  <tr><td>Active Flows</td><td>Total open ports across all scans</td><td>Total number of potential rule entries needed</td></tr>
+                  <tr><td>Packets Processed</td><td>Simulated counter from scan data</td><td>Illustrative only — shows relative traffic volume</td></tr>
+                  <tr><td>Network Load</td><td>Simulated % based on flow density</td><td>High load = many open ports = large attack surface</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Flow Table</h4>
+            <p>Each scanned port is translated into an SDN flow entry. The table represents what your OpenFlow switch rules <em>should</em> look like based on scan findings:</p>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+                <tbody>
+                  <tr><td>Flow ID</td><td>Sequential entry number</td></tr>
+                  <tr><td>Priority</td><td>300 = DROP rules for dangerous ports · 100 = FORWARD for permitted services. Higher priority = evaluated first.</td></tr>
+                  <tr><td>Match</td><td>Destination IP:port and protocol (TCP) that this rule applies to</td></tr>
+                  <tr><td>Action</td><td><span class="badge badge-danger">DROP</span> — block this traffic · <span class="badge badge-success">FORWARD</span> — allow this traffic to pass</td></tr>
+                  <tr><td>Packets / Bytes</td><td>Simulated counters showing estimated traffic volume</td></tr>
+                  <tr><td>Status</td><td><span class="badge badge-danger">Alert</span> = high-risk port that should be blocked · <span class="badge badge-success">Active</span> = permitted service</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">SDN Policy Recommendations (after scan)</h4>
+            <p>After a scan completes on the New Scan page, if high-risk ports were found, pscan automatically generates a list of recommended DROP rules for those ports. You can <strong>Copy OpenFlow JSON</strong> — this gives you a JSON payload in Ryu/OpenFlow format that can be pushed directly to an OpenFlow switch via a REST API.</p>
+
+            <h4 class="help-h4 mt-4">High-Risk Ports (automatically flagged)</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Port</th><th>Service</th><th>Risk</th></tr></thead>
+                <tbody>
+                  <tr><td>21</td><td>FTP</td><td>Plaintext credentials, brute-force target</td></tr>
+                  <tr><td>23</td><td>Telnet</td><td>Plaintext protocol — never use over untrusted networks</td></tr>
+                  <tr><td>445</td><td>SMB</td><td>EternalBlue (MS17-010), ransomware lateral movement</td></tr>
+                  <tr><td>3389</td><td>RDP</td><td>BlueKeep, brute-force — should never be internet-exposed</td></tr>
+                  <tr><td>6379</td><td>Redis</td><td>No auth by default — commonly exploited for RCE</td></tr>
+                  <tr><td>27017</td><td>MongoDB</td><td>No auth by default on older versions</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Connected Nodes Table</h4>
+            <p>Lists every scanned host with scan count, last scan time, and total open ports. Use <em>Re-scan</em> to kick off a new scan directly, or <em>View reports</em> to see the formatted assessment for that host.</p>
+
+            <h4 class="help-h4 mt-4">Filtering the Flow Table</h4>
+            <p>Type in the search box to filter by IP, port, or service name. Use the <strong>All / FORWARD / DROP</strong> buttons to filter by action type. This is useful when you want to quickly see all DROP-flagged entries and verify each one.</p>
+          </div>
+          <div class="help-tip-box">
+            <div class="help-tip-title"><i class="bi bi-lightbulb me-1"></i>Tips</div>
+            <ul class="help-list">
+              <li>Filter the flow table to <strong>DROP</strong> and investigate each flagged port — these are the highest-priority remediation items.</li>
+              <li>Run more scans across your network to populate the controller with a complete picture of your attack surface.</li>
+              <li>Use <kbd>Ctrl+Shift+R</kbd> to force-refresh the controller data with the latest scan results.</li>
+              <li>The OpenFlow JSON from the Scan Results page can be pushed to a real Ryu controller's REST API at <code>/stats/flowentry/add</code>.</li>
+            </ul>
+            <div class="help-tip-title mt-4"><i class="bi bi-cpu me-1 text-primary"></i>What is OpenFlow?</div>
+            <p class="help-list" style="font-size:12px;color:var(--text-secondary);line-height:1.6;">OpenFlow is a communication protocol that gives a controller access to the forwarding plane of network switches and routers. When pscan generates a DROP rule JSON, it's in the format that an OpenFlow 1.3-compatible controller (like Ryu or ONOS) can push directly to managed switches — making the security finding instantly actionable at the network layer.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CLI Usage ─────────────────────────────────────────────── -->
+    <div class="help-panel" id="help-cli">
+      <div class="help-panel-header">
+        <div class="help-panel-icon" style="background:var(--bg-sidebar);color:#9CA3AF;">
+          <i class="bi bi-terminal"></i>
+        </div>
+        <div>
+          <h2 class="help-panel-title">CLI Usage</h2>
+          <p class="help-panel-sub">Run pscan directly from the terminal without the dashboard</p>
+        </div>
+      </div>
+
+      <div class="surface p-4 mb-4">
+        <div class="help-grid">
+          <div>
+            <h4 class="help-h4">Basic Syntax</h4>
+            <pre class="cli-block">pscan &lt;target&gt; -p &lt;range&gt; [options]</pre>
+
+            <h4 class="help-h4 mt-4">Examples</h4>
+            <pre class="cli-block"># Scan common ports on a local host
+pscan 192.168.1.1 -p 1-1024
+
+# Full scan with longer timeout (WAN target)
+pscan 10.0.0.5 -p 1-65535 --timeout 3.0
+
+# Specific ports only
+pscan myserver.local -p 80,443,8080,8443
+
+# Fewer threads for noisy-network resilience
+pscan 192.168.1.1 -p 1-1024 --timeout 2.0 --threads 50
+
+# Disable vulnerability scan for speed
+pscan 192.168.1.1 -p 1-65535 --no-vulns
+
+# Add probe delay to reduce IDS noise
+pscan 192.168.1.1 -p 1-1024 --delay 0.1</pre>
+
+            <h4 class="help-h4 mt-4">All Flags</h4>
+            <div class="help-table-wrap">
+              <table class="help-table">
+                <thead><tr><th>Flag</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>-p &lt;range&gt;</code></td><td>1-1024</td><td>Port range (<code>1-1024</code>) or comma-separated list (<code>80,443</code>)</td></tr>
+                  <tr><td><code>--timeout &lt;s&gt;</code></td><td>1.0</td><td>Per-port connection timeout in seconds</td></tr>
+                  <tr><td><code>--threads &lt;n&gt;</code></td><td>100</td><td>Concurrent scan threads (max 500)</td></tr>
+                  <tr><td><code>--delay &lt;s&gt;</code></td><td>0</td><td>Probe delay per thread in seconds (0.05–0.2 for low-noise)</td></tr>
+                  <tr><td><code>--ping-check</code></td><td>—</td><td>Ping host before scanning — abort if unreachable</td></tr>
+                  <tr><td><code>--aggressive</code></td><td>—</td><td>Fast preset: timeout=0.3s, threads=300 (noisy but quick)</td></tr>
+                  <tr><td><code>--no-vulns</code></td><td>—</td><td>Skip vulnerability matching (faster port-only scan)</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 class="help-h4 mt-4">Starting the Dashboard Server</h4>
+            <pre class="cli-block"># From inside the Pscan directory:
+uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
+
+# Or with auto-reload off (production-style):
+uvicorn backend.app:app --host 127.0.0.1 --port 8000</pre>
+            <p class="mt-2">Then open <code>http://127.0.0.1:8000</code> in your browser.</p>
+
+            <h4 class="help-h4 mt-4">CLI + Dashboard Shared Database</h4>
+            <p>The CLI and the dashboard share the same SQLite file (<code>pscan.db</code>). Scans run from the terminal appear immediately in Scan History when you refresh the browser — and vice versa.</p>
+
+            <h4 class="help-h4 mt-4">CLI Output</h4>
+            <p>The CLI prints open ports in real time as they are discovered, then saves a <code>.txt</code> report file in the current directory. The file is also linked from Scan History.</p>
+          </div>
+          <div class="help-tip-box">
+            <div class="help-tip-title"><i class="bi bi-lightbulb me-1"></i>Tips</div>
+            <ul class="help-list">
+              <li>The <strong>CLI Equivalent</strong> box on the New Scan page always shows the terminal command matching your current settings — copy it directly.</li>
+              <li>Use <code>--threads 50</code> on slow or congested networks to avoid dropped connections.</li>
+              <li>Add <code>--delay 0.1</code> when scanning a target with IDS — it reduces the burst profile significantly.</li>
+              <li>Run <code>pscan --help</code> for a quick in-terminal reference.</li>
+            </ul>
+            <div class="help-tip-title mt-4"><i class="bi bi-terminal me-1"></i>Quick Reference</div>
+            <pre class="cli-block" style="font-size:11px;">pscan 192.168.1.1 -p 1-1024
+pscan host -p 80,443 --no-vulns
+pscan host -p 1-65535 --delay 0.1
+pscan host --ping-check
+pscan host --aggressive -p 1-65535</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── FAQ ───────────────────────────────────────────────────── -->
+    <div class="help-panel" id="help-faq">
+      <div class="help-panel-header">
+        <div class="help-panel-icon" style="background:var(--primary-soft);color:var(--primary);">
+          <i class="bi bi-patch-question"></i>
+        </div>
+        <div>
+          <h2 class="help-panel-title">FAQ</h2>
+          <p class="help-panel-sub">Common questions and answers</p>
+        </div>
+      </div>
+
+      <div class="surface p-4 mb-4">
+        <div class="accordion help-faq-accordion" id="faqAccordion">
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq1" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>Why does my scan show 0 open ports?
+              </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <p>Several possible causes:</p>
+                <ul>
+                  <li><strong>Firewall</strong> — the target has a firewall that silently drops connections. All ports look closed.</li>
+                  <li><strong>Wrong IP</strong> — double-check the target address. Use <code>ping</code> first to confirm the host is reachable.</li>
+                  <li><strong>Narrow port range</strong> — try a Full scan (1–65535) to cover every port.</li>
+                  <li><strong>Timeout too low</strong> — increase timeout to 2–3 s for WAN targets or slow VMs.</li>
+                  <li><strong>VM network mode</strong> — for VirtualBox/VMware, switch the VM adapter to <strong>Bridged</strong> so it gets a real LAN IP.</li>
+                </ul>
+                <p>Enable <strong>Host Alive Check</strong> first — if it reports the host as unreachable, fix connectivity before scanning ports.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq2" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>Can I scan a VM?
+              </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <p>Yes. Use the VM's IP address. Network adapter mode matters:</p>
+                <ul>
+                  <li><strong>Bridged</strong> — VM gets a real LAN IP. Most scannable — recommended.</li>
+                  <li><strong>NAT</strong> — VM gets a private IP from the hypervisor (e.g. <code>10.0.2.x</code>). Find it with <code>ip addr</code> (Linux) or <code>ipconfig</code> (Windows) inside the VM.</li>
+                  <li><strong>Host-only</strong> — VM is only reachable from the host machine, not from other LAN devices.</li>
+                </ul>
+                <p><code>hostname.local</code> also works if mDNS (Bonjour/Avahi) is enabled on the VM and you're on the same LAN segment.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq3" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>What is <code>hostname.local</code>?
+              </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <code>.local</code> hostnames are resolved via <strong>mDNS (Multicast DNS)</strong> — a zero-configuration protocol that lets devices announce themselves on a LAN without a DNS server.
+                <ul class="mt-2">
+                  <li>Windows and macOS use <strong>Bonjour</strong> for mDNS</li>
+                  <li>Linux uses <strong>Avahi</strong></li>
+                  <li>Example: <code>raspberrypi.local</code> resolves to your Pi's IP automatically</li>
+                </ul>
+                <p class="mt-2"><strong>Limitation:</strong> mDNS only works on the same network segment and does not cross routers. If the device is on a different subnet, use its IP address directly.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq4" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>What is the difference between History and Reports?
+              </button>
+            </h3>
+            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <p>Same underlying data, two completely different audiences and formats:</p>
+                <div class="help-table-wrap">
+                  <table class="help-table">
+                    <thead><tr><th>Feature</th><th>Scan History</th><th>Reports</th></tr></thead>
+                    <tbody>
+                      <tr><td>Audience</td><td>You (the operator)</td><td>Managers, clients, auditors</td></tr>
+                      <tr><td>Format</td><td>Raw technical log</td><td>Formatted security assessment</td></tr>
+                      <tr><td>Contains</td><td>Exact banners, CVE IDs, timestamps, metadata</td><td>Risk badge, narrative, remediation steps</td></tr>
+                      <tr><td>Use case</td><td>Compare scans, debug, export CSV</td><td>Share, print, file as evidence</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="mt-2">Think of History as your notebook and Reports as the polished document you hand to someone else.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq5" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>Are vulnerabilities detected accurately?
+              </button>
+            </h3>
+            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <p>pscan uses <strong>banner grabbing</strong> — connecting to each open port and reading the service's initial response — then matching that banner against a built-in CVE database.</p>
+                <ul>
+                  <li><span class="badge badge-danger me-1">Confirmed</span> — a specific vulnerable version string was found in the banner. High confidence, but always verify before patching.</li>
+                  <li><span class="badge badge-warning me-1">Potential</span> — the service type matches a vulnerability category, but the version couldn't be confirmed from the banner. Low confidence — verify manually.</li>
+                </ul>
+                <p class="mt-2"><strong>Limitations:</strong> services that suppress version banners, use TLS without a version header, or run on non-standard ports may not be detected. pscan is a first-pass triage tool — always follow up with dedicated vulnerability scanners (Nessus, OpenVAS) for production environments.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq6" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>Where is my data stored?
+              </button>
+            </h3>
+            <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <ul>
+                  <li><strong>Database:</strong> <code>data/database/backend.db</code> — SQLite file containing all scans, ports, and vulnerability records</li>
+                  <li><strong>Text reports:</strong> <code>data/records/</code> — one <code>.txt</code> file per scan</li>
+                  <li><strong>Exports:</strong> <code>data/exports/</code> — CSV/JSON exports from Scan History</li>
+                  <li><strong>Users:</strong> <code>data/users.json</code> — registered accounts (passwords hashed with SHA-256)</li>
+                </ul>
+                <p class="mt-2">No data is ever transmitted externally. To back up everything, copy the entire <code>data/</code> directory. To wipe all scan data, delete <code>data/database/backend.db</code> — it will be recreated empty on next startup.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq7" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>Why are Stealth/Decoy scan greyed out in the GUI?
+              </button>
+            </h3>
+            <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <p>These modes require <strong>raw socket access</strong>, which needs Administrator/root privileges and <strong>Npcap</strong> (Windows) or <strong>libpcap</strong> (Linux/macOS). A FastAPI web server running as a normal user cannot open raw sockets.</p>
+                <p class="mt-2">They <em>are</em> available via the CLI when run as Administrator:</p>
+                <pre class="cli-block" style="font-size:12px;"># Decoy scan (run as Administrator)
+pscan 192.168.1.1 -p 1-1024 -D 5
+
+# MAC spoofing (run as Administrator)
+pscan 192.168.1.1 -p 1-1024 -m random --restore-mac</pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq8" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>What does the OS fingerprint mean?
+              </button>
+            </h3>
+            <div id="faq8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <p>After a scan, pscan makes a <strong>heuristic guess</strong> at the target OS based on which ports are open. This is not as accurate as active OS fingerprinting (like Nmap's <code>-O</code> flag which analyses TCP/IP stack behaviour) — it's a quick indicator based on service patterns.</p>
+                <div class="help-table-wrap mt-2">
+                  <table class="help-table">
+                    <thead><tr><th>OS Guess</th><th>Key ports that triggered it</th></tr></thead>
+                    <tbody>
+                      <tr><td>Windows</td><td>3389 (RDP), 135+445 (RPC+SMB), or 139 (NetBIOS)</td></tr>
+                      <tr><td>Linux/Unix</td><td>22 (SSH) + 80/443, without RDP</td></tr>
+                      <tr><td>macOS</td><td>22 (SSH) + 548 (AFP)</td></tr>
+                      <tr><td>Printer/Embedded</td><td>631 (IPP), 9100 (RAW print), or 515 (LPD)</td></tr>
+                      <tr><td>Database Server</td><td>1433 (MSSQL), 3306 (MySQL), or 5432 (Postgres)</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="mt-2">Always treat this as a hint, not a fact — many services run on non-standard ports and the OS guess may be wrong.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq9" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>Can I run pscan on a schedule?
+              </button>
+            </h3>
+            <div id="faq9" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <p>Not natively yet, but you can use your OS task scheduler:</p>
+                <pre class="cli-block" style="font-size:12px;"># Windows Task Scheduler (run daily at 02:00)
+schtasks /create /tn "pscan-daily" /tr "pscan 192.168.1.0/24 -p 1-1024" /sc daily /st 02:00
+
+# Linux cron (run every night at 2am)
+0 2 * * * /usr/local/bin/pscan 192.168.1.1 -p 1-1024</pre>
+                <p class="mt-2">Results appear automatically in Scan History the next time you open the dashboard. Scheduled scans and CLI scans share the same database as the dashboard.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item help-faq-acc-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed help-faq-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq10" aria-expanded="false">
+                <i class="bi bi-question-circle text-primary me-2"></i>How do I add or remove users?
+              </button>
+            </h3>
+            <div id="faq10" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body help-faq-body">
+                <ul>
+                  <li><strong>Add a user:</strong> Go to <a href="/register" class="text-primary">/register</a> (or click "Create account" on the login page) and fill in the form. The new account is stored in <code>data/users.json</code>.</li>
+                  <li><strong>Remove a user:</strong> Edit <code>data/users.json</code> and delete the relevant entry. Restart the server for the change to take effect.</li>
+                  <li><strong>Default admin:</strong> The <code>admin</code> / <code>pscan2024</code> account is hardcoded in <code>backend/config/settings.py</code>. Change <code>AUTH_USERNAME</code> and <code>AUTH_PASSWORD</code> there before exposing pscan on a network.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /help-content -->
+</div><!-- /help-layout -->
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── Help page layout ───────────────────────────────────────── */
+.help-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--sp-5);
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .help-layout { grid-template-columns: 1fr; }
+  .help-nav { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+  .help-nav-label { width: 100%; }
+}
+
+/* ── Left nav ───────────────────────────────────────────────── */
+.help-nav {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--sp-4));
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3);
+  box-shadow: var(--sh-sm);
+}
+
+.help-nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  padding: var(--sp-1) var(--sp-2) var(--sp-2);
+}
+
+.help-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background 120ms, color 120ms;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.help-nav-item i { font-size: 14px; flex-shrink: 0; }
+
+.help-nav-item:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.help-nav-item.active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ── Panels ─────────────────────────────────────────────────── */
+.help-panel { display: none; }
+.help-panel.active { display: block; }
+
+.help-panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.help-panel-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.help-panel-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.help-panel-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── Shared content styles ──────────────────────────────────── */
+.help-grid {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: var(--sp-6);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .help-grid { grid-template-columns: 1fr; }
+}
+
+.help-h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--sp-2);
+}
+
+.help-list {
+  margin: 0;
+  padding-left: 1.2em;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.help-list li { margin-bottom: 4px; }
+
+.help-tip-box {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  font-size: 13px;
+}
+
+.help-tip-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: var(--sp-2);
+}
+
+.help-table-wrap { overflow-x: auto; margin-top: var(--sp-2); }
+
+.help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.help-table th {
+  text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.help-table td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+
+.help-table td:first-child {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+/* FAQ accordion */
+.help-faq-accordion { border-radius: var(--r-md); overflow: hidden; }
+
+.help-faq-acc-item {
+  border: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-faq-acc-item:last-child { border-bottom: none; }
+
+.help-faq-btn {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  padding: var(--sp-4);
+  box-shadow: none !important;
+}
+
+.help-faq-btn:not(.collapsed) {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.help-faq-btn::after {
+  filter: none;
+}
+
+.help-faq-btn:not(.collapsed)::after {
+  filter: invert(38%) sepia(72%) saturate(1800%) hue-rotate(210deg) brightness(95%);
+}
+
+.help-faq-body {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  background: var(--bg-subtle);
+}
+
+.help-faq-body ul { padding-left: 1.3em; margin: var(--sp-2) 0 0; }
+.help-faq-body li { margin-bottom: 4px; }
+.help-faq-body p  { margin: 0 0 var(--sp-2); }
+
+.cli-block {
+  background: #111827;
+  color: #E5E7EB;
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: var(--sp-2) 0 0;
+  white-space: pre;
+}
+</style>
+
+<script>
+(function () {
+  const navItems  = document.querySelectorAll('.help-nav-item[data-section]');
+  const panels    = document.querySelectorAll('.help-panel');
+
+  function showSection(id) {
+    panels.forEach(p => p.classList.remove('active'));
+    navItems.forEach(n => n.classList.remove('active'));
+
+    const panel = document.getElementById('help-' + id);
+    if (panel) panel.classList.add('active');
+
+    const navItem = document.querySelector(`.help-nav-item[data-section="${id}"]`);
+    if (navItem) navItem.classList.add('active');
+  }
+
+  navItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const section = item.dataset.section;
+      history.pushState(null, '', '#' + section);
+      showSection(section);
+    });
+  });
+
+  // Load from URL hash, default to dashboard
+  const hash = (location.hash || '#dashboard').replace('#', '');
+  showSection(hash);
+
+  window.addEventListener('hashchange', () => {
+    showSection(location.hash.replace('#', '') || 'dashboard');
+  });
+})();
+</script>
+{% endblock %}

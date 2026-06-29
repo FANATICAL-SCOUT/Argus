@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Network scan overview and security summary</p>
+  </div>
+  <a href="/scan" class="btn btn-primary">
+    <i class="bi bi-radar me-2"></i>New Scan
+  </a>
+</div>
+
+<!-- Stat cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card-body">
+      <div class="stat-card-icon stat-icon-primary">
+        <i class="bi bi-clipboard-data"></i>
+      </div>
+      <div class="stat-card-content">
+        <span class="stat-label">Total Scans</span>
+        <span class="stat-value">{{ stats.total_scans }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-body">
+      <div class="stat-card-icon stat-icon-success">
+        <i class="bi bi-door-open"></i>
+      </div>
+      <div class="stat-card-content">
+        <span class="stat-label">Open Ports Found</span>
+        <span class="stat-value">{{ stats.total_open_ports }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-body">
+      <div class="stat-card-icon stat-icon-danger">
+        <i class="bi bi-exclamation-triangle"></i>
+      </div>
+      <div class="stat-card-content">
+        <span class="stat-label">Vulnerabilities</span>
+        <span class="stat-value">{{ stats.total_vulnerabilities }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-body">
+      <div class="stat-card-icon stat-icon-info">
+        <i class="bi bi-clock"></i>
+      </div>
+      <div class="stat-card-content">
+        <span class="stat-label">Last Scan</span>
+        <span class="stat-value stat-value-sm">
+          {% if stats.last_scan_time %}
+            {{ stats.last_scan_time | dt }}
+          {% else %}
+            —
+          {% endif %}
+        </span>
+        {% if stats.last_scan_target %}
+          <span class="stat-meta">{{ stats.last_scan_target }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div class="chart-row">
+  <div class="surface chart-card">
+    <div class="chart-card-header">
+      <h2 class="chart-title">Services Distribution</h2>
+      <span class="chart-subtitle">Top open port services across all scans</span>
+    </div>
+    <div class="chart-body">
+      {% if stats.total_scans > 0 %}
+        <canvas id="svcChart" height="220"></canvas>
+      {% else %}
+        <div class="chart-empty">
+          <i class="bi bi-bar-chart"></i>
+          <span>Run a scan to see service distribution</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="surface chart-card">
+    <div class="chart-card-header">
+      <h2 class="chart-title">Risk Distribution</h2>
+      <span class="chart-subtitle">Scans grouped by vulnerability count</span>
+    </div>
+    <div class="chart-body chart-body-donut">
+      {% if stats.total_scans > 0 %}
+        <canvas id="riskChart" height="220"></canvas>
+      {% else %}
+        <div class="chart-empty">
+          <i class="bi bi-pie-chart"></i>
+          <span>Run a scan to see risk distribution</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Recent scans table -->
+<div class="surface">
+  <div class="table-header">
+    <h2 class="table-title">Recent Scans</h2>
+    <a href="/history" class="btn btn-sm btn-ghost">
+      View all <i class="bi bi-arrow-right ms-1"></i>
+    </a>
+  </div>
+
+  {% if recent_scans %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Target</th>
+          <th>Port Range</th>
+          <th>Open Ports</th>
+          <th>Vulns</th>
+          <th>Duration</th>
+          <th>Scanned</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for scan in recent_scans %}
+        <tr>
+          <td>
+            <span class="mono">{{ scan.target }}</span>
+          </td>
+          <td class="text-secondary">{{ scan.start_port }}–{{ scan.end_port }}</td>
+          <td>
+            {% if scan.open_count > 0 %}
+              <span class="badge badge-success">{{ scan.open_count }}</span>
+            {% else %}
+              <span class="text-muted">0</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if scan.vuln_count > 0 %}
+              <span class="badge badge-danger">{{ scan.vuln_count }}</span>
+            {% else %}
+              <span class="text-muted">0</span>
+            {% endif %}
+          </td>
+          <td class="text-secondary">{{ scan.duration | dur }}</td>
+          <td class="text-secondary text-nowrap">{{ scan.created_at | dt }}</td>
+          <td>
+            <a href="/history?q={{ scan.target }}" class="btn-icon" title="Filter by target">
+              <i class="bi bi-search"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="table-empty">
+    <i class="bi bi-inbox"></i>
+    <p>No scans yet. <a href="/scan">Run your first scan</a>.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if stats.total_scans > 0 %}
+<script>
+const SVC_LABELS = {{ svc_labels | safe }};
+const SVC_DATA   = {{ svc_data | safe }};
+const RISK_LABELS = {{ risk_labels | safe }};
+const RISK_DATA   = {{ risk_data | safe }};
+
+const COLORS = ['#2563EB','#0284C7','#16A34A','#F59E0B','#EA580C','#DC2626','#7C3AED','#64748B'];
+const RISK_COLORS = ['#94A3B8','#16A34A','#F59E0B','#EA580C','#DC2626'];
+
+new Chart(document.getElementById('svcChart'), {
+  type: 'bar',
+  data: {
+    labels: SVC_LABELS,
+    datasets: [{
+      label: 'Open Ports',
+      data: SVC_DATA,
+      backgroundColor: COLORS,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#F1F5F9' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+new Chart(document.getElementById('riskChart'), {
+  type: 'doughnut',
+  data: {
+    labels: RISK_LABELS,
+    datasets: [{
+      data: RISK_DATA,
+      backgroundColor: RISK_COLORS,
+      borderWidth: 0,
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: { padding: 16, font: { size: 12 }, boxWidth: 12, borderRadius: 2 }
+      }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

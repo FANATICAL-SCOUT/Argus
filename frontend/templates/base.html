@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Argus{% endblock %} — Network Scanner</title>
+
+  <!-- Bootstrap 5 (self-hosted) -->
+  <link rel="stylesheet" href="{{ url_for('static', path='vendor/bootstrap/bootstrap.min.css') }}" />
+  <!-- Bootstrap Icons (self-hosted) -->
+  <link rel="stylesheet" href="{{ url_for('static', path='vendor/bootstrap-icons/bootstrap-icons.min.css') }}" />
+  <!-- Design system (includes self-hosted Inter + JetBrains Mono) -->
+  <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  <!-- ─── Sidebar ─────────────────────────────────────────────────── -->
+  <nav class="sidebar" id="sidebar">
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <span class="sidebar-brand-icon"><i class="bi bi-eye"></i></span>
+      <span class="sidebar-brand-name">Argus</span>
+    </div>
+
+    <!-- Hamburger toggle (desktop only) -->
+    <button class="sidebar-hamburger" id="sidebarToggle" aria-label="Toggle sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+
+    <!-- Nav items -->
+    <ul class="sidebar-nav" role="list">
+      <li>
+        <a href="/"
+           class="nav-item {% if active == 'dashboard' %}active{% endif %}"
+           aria-current="{% if active == 'dashboard' %}page{% endif %}">
+          <i class="bi bi-grid-1x2"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="/scan"
+           class="nav-item {% if active == 'scan' %}active{% endif %}"
+           aria-current="{% if active == 'scan' %}page{% endif %}">
+          <i class="bi bi-radar"></i>
+          <span>New Scan</span>
+        </a>
+      </li>
+      <li>
+        <a href="/history"
+           class="nav-item {% if active == 'history' %}active{% endif %}"
+           aria-current="{% if active == 'history' %}page{% endif %}">
+          <i class="bi bi-clock-history"></i>
+          <span>Scan History</span>
+        </a>
+      </li>
+
+      <li class="nav-separator"></li>
+
+      <li>
+        <a href="/reports"
+           class="nav-item {% if active == 'reports' %}active{% endif %}"
+           aria-current="{% if active == 'reports' %}page{% endif %}">
+          <i class="bi bi-file-text"></i>
+          <span>Reports</span>
+        </a>
+      </li>
+      <li>
+        <a href="/topology" target="_blank"
+           class="nav-item {% if active == 'topology' %}active{% endif %}">
+          <i class="bi bi-diagram-3"></i>
+          <span>Network Topology</span>
+        </a>
+      </li>
+      <li>
+        <a href="/controller" target="_blank"
+           class="nav-item {% if active == 'controller' %}active{% endif %}">
+          <i class="bi bi-cpu"></i>
+          <span>SDN Controller</span>
+        </a>
+      </li>
+
+      <li class="nav-separator"></li>
+
+      <li>
+        <a href="/help"
+           class="nav-item {% if active == 'help' %}active{% endif %}">
+          <i class="bi bi-question-circle"></i>
+          <span>Help</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- Footer: user + logout -->
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar"><i class="bi bi-person-fill"></i></div>
+        <div class="sidebar-user-info">
+          <span class="sidebar-user-name">{{ request.session.get('user', 'admin') }}</span>
+          <span class="sidebar-user-role">Administrator</span>
+        </div>
+      </div>
+      <a href="/logout" class="sidebar-signout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Sign Out</span>
+      </a>
+      <span class="sidebar-version">v2.11.0</span>
+    </div>
+  </nav>
+
+  <!-- Mobile sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- ─── Main wrapper ─────────────────────────────────────────────── -->
+  <div class="main-wrapper" id="mainWrapper">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <!-- Mobile-only hamburger (hidden on desktop via CSS) -->
+      <button class="topbar-toggle" id="sidebarToggleMobile" aria-label="Toggle sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+
+      <div class="topbar-brand-mobile">
+        <i class="bi bi-eye text-primary"></i>
+        <span class="fw-semibold">Argus</span>
+      </div>
+
+      <div class="topbar-spacer"></div>
+
+      <a href="/scan" class="btn btn-primary btn-sm topbar-action">
+        <i class="bi bi-plus-lg me-1"></i>New Scan
+      </a>
+    </header>
+
+    <!-- Page content -->
+    <main class="page-content" id="pageContent">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div><!-- /main-wrapper -->
+
+  <!-- Toast container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+    {% block toasts %}{% endblock %}
+  </div>
+
+  <!-- Bootstrap bundle (self-hosted) -->
+  <script src="{{ url_for('static', path='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+  {% block scripts %}{% endblock %}
+  <!-- App JS (always last) -->
+  <script src="{{ url_for('static', path='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — pscan</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='vendor/bootstrap/bootstrap.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', path='vendor/bootstrap-icons/bootstrap-icons.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-app);
+      padding: var(--sp-4);
+    }
+
+    .auth-card { width: 100%; max-width: 420px; }
+
+    /* Brand */
+    .auth-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--sp-3);
+      margin-bottom: var(--sp-5);
+    }
+    .auth-brand-icon {
+      width: 60px; height: 60px;
+      background: var(--primary);
+      border-radius: var(--r-lg);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 28px;
+      box-shadow: 0 4px 20px rgba(37,99,235,.35);
+    }
+    .auth-brand-name { font-size: 24px; font-weight: 700; color: var(--text-primary); letter-spacing: -.02em; }
+    .auth-brand-sub  { font-size: 13px; color: var(--text-secondary); margin-top: -4px; }
+
+    /* Card surface */
+    .auth-surface {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-md);
+      overflow: hidden;
+    }
+
+    /* Tab switcher */
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .auth-tab {
+      padding: 14px 0;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--bg-subtle);
+      border: none;
+      cursor: pointer;
+      transition: color 150ms, background 150ms;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      text-decoration: none;
+    }
+    .auth-tab:hover { color: var(--primary); background: var(--bg-surface); }
+    .auth-tab.active {
+      color: var(--primary);
+      background: var(--bg-surface);
+      border-bottom: 2px solid var(--primary);
+      margin-bottom: -1px;
+    }
+
+    /* Form body */
+    .auth-body { padding: 28px 28px 24px; }
+
+    .auth-title    { font-size: 17px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    .auth-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 22px; }
+
+    .auth-field    { margin-bottom: 16px; }
+    .auth-label    { display: block; font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 6px; }
+    .auth-input {
+      width: 100%; height: 42px;
+      padding: 0 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 14px; font-family: inherit; outline: none;
+      transition: border-color 150ms, box-shadow 150ms;
+    }
+    .auth-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    .auth-input-wrap  { position: relative; }
+    .auth-input-icon  { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 15px; pointer-events: none; }
+    .auth-input.has-icon { padding-left: 36px; }
+
+    .auth-error {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--danger-soft); color: var(--danger-text);
+      border: 1px solid rgba(220,38,38,.2);
+      border-radius: var(--r-md);
+      padding: 10px 14px; font-size: 13px; font-weight: 500;
+      margin-bottom: 16px;
+    }
+    .auth-success {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--success-soft); color: var(--success-text);
+      border: 1px solid rgba(22,163,74,.2);
+      border-radius: var(--r-md);
+      padding: 10px 14px; font-size: 13px; font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .auth-btn {
+      width: 100%; height: 44px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: var(--r-md);
+      font-size: 14px; font-weight: 600; font-family: inherit;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 150ms, transform 80ms;
+      margin-top: 8px;
+    }
+    .auth-btn:hover  { background: var(--primary-hover); }
+    .auth-btn:active { transform: scale(.98); }
+
+    .auth-security {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 16px; font-size: 11px; color: var(--text-muted);
+    }
+
+    .auth-footer {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+
+    <!-- Brand -->
+    <div class="auth-brand">
+      <div class="auth-brand-icon"><i class="bi bi-shield-check"></i></div>
+      <div style="text-align:center;">
+        <div class="auth-brand-name">pscan</div>
+        <div class="auth-brand-sub">Network Security Scanner v2.0</div>
+      </div>
+    </div>
+
+    <!-- Unified card with tab switcher -->
+    <div class="auth-surface">
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <a class="auth-tab active" href="/login">
+          <i class="bi bi-box-arrow-in-right"></i> Sign In
+        </a>
+        <a class="auth-tab" href="/register">
+          <i class="bi bi-person-plus"></i> Sign Up
+        </a>
+      </div>
+
+      <!-- Sign In form -->
+      <div class="auth-body">
+        <div class="auth-title">Welcome back</div>
+        <div class="auth-subtitle">Sign in to access the Argus dashboard</div>
+
+        {% if error %}
+        <div class="auth-error">
+          <i class="bi bi-exclamation-circle-fill"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post" action="/login" autocomplete="off">
+          <div class="auth-field">
+            <label class="auth-label" for="username">Username</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-person auth-input-icon"></i>
+              <input class="auth-input has-icon" type="text" id="username" name="username"
+                     placeholder="admin" required autofocus autocomplete="username" />
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label class="auth-label" for="password">Password</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-lock auth-input-icon"></i>
+              <input class="auth-input has-icon" type="password" id="password" name="password"
+                     placeholder="••••••••" required autocomplete="current-password" />
+            </div>
+          </div>
+
+          <button type="submit" class="auth-btn">
+            <i class="bi bi-box-arrow-in-right"></i>Sign In
+          </button>
+        </form>
+
+        <div class="auth-security">
+          <i class="bi bi-shield-lock"></i>
+          Session secured with signed cookie encryption
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-footer">pscan v2.0.0 &nbsp;·&nbsp; Argus Network Security</div>
+  </div>
+
+  <script src="{{ url_for('static', path='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

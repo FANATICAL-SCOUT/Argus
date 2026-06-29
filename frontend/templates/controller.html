@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}SDN Controller{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <div>
+    <h1 class="page-title">SDN Controller</h1>
+    <p class="page-subtitle">OpenFlow 1.3 — Software-Defined Network Management Console</p>
+  </div>
+</div>
+
+<!-- ── Controller Status Banner ───────────────────────────────────── -->
+<div class="ctrl-banner mb-4">
+  <div class="ctrl-banner-left">
+    <span class="ctrl-status-dot"></span>
+    <div>
+      <div class="ctrl-status-label">Controller Active</div>
+      <div class="ctrl-status-sub">pscan SDN Controller v2.0 · OpenFlow 1.3 · Port 6633</div>
+    </div>
+  </div>
+  <div class="ctrl-banner-right">
+    <div class="ctrl-meta-item">
+      <i class="bi bi-clock me-1"></i>
+      Uptime: <strong>{{ uptime }}</strong>
+    </div>
+    <div class="ctrl-meta-item">
+      <i class="bi bi-hdd-network me-1"></i>
+      Controller IP: <strong class="mono">127.0.0.1:6633</strong>
+    </div>
+    <div class="ctrl-meta-item">
+      <i class="bi bi-diagram-3 me-1"></i>
+      Protocol: <strong>OpenFlow 1.3</strong>
+    </div>
+  </div>
+</div>
+
+<!-- ── Metric Cards ────────────────────────────────────────────────── -->
+<div class="stat-grid ctrl-stat-grid mb-4" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+
+  <div class="stat-card p-4">
+    <div class="stat-icon" style="background:var(--primary-soft);color:var(--primary);">
+      <i class="bi bi-hdd-network"></i>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value" style="font-size:24px;">{{ total_nodes }}</div>
+      <div class="stat-label">Connected Nodes</div>
+      <div class="stat-delta positive">
+        <i class="bi bi-circle-fill" style="font-size:7px;"></i> All Online
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card p-4">
+    <div class="stat-icon" style="background:var(--success-soft);color:var(--success);">
+      <i class="bi bi-lightning-charge"></i>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value" style="font-size:24px;">{{ total_flows }}</div>
+      <div class="stat-label">Active Flows</div>
+      <div class="stat-delta positive">
+        <i class="bi bi-arrow-up-short"></i> Flow table populated
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card p-4">
+    <div class="stat-icon" style="background:var(--info-soft);color:var(--info);">
+      <i class="bi bi-activity"></i>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value" style="font-size:22px;word-break:break-all;">{{ total_pkts }}</div>
+      <div class="stat-label">Packets Processed</div>
+      <div class="stat-delta positive">
+        <i class="bi bi-arrow-up-short"></i> Since startup
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card p-4">
+    <div class="stat-icon" style="background:var(--warning-soft);color:var(--warning);">
+      <i class="bi bi-speedometer2"></i>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value" style="font-size:24px;">{{ net_load }}%</div>
+      <div class="stat-label">Network Load</div>
+      <div class="mt-2" style="width:100%;">
+        <div class="progress" style="height:4px;border-radius:2px;">
+          <div class="progress-bar {% if net_load > 75 %}bg-danger{% elif net_load > 50 %}bg-warning{% else %}bg-success{% endif %}"
+               style="width:{{ net_load }}%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Flow Table ─────────────────────────────────────────────────── -->
+<div class="card mb-4">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-table text-primary"></i>
+      <span class="fw-semibold">Flow Table</span>
+      <span class="badge badge-info ms-1">{{ flows | length }} entries</span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <input type="text" class="form-control form-control-sm" id="flow-search"
+             placeholder="Filter flows…" style="width:200px;"
+             oninput="filterFlows(this.value)">
+      <div class="btn-group btn-group-sm">
+        <button class="btn btn-outline-secondary active" onclick="filterAction('ALL',this)">All</button>
+        <button class="btn btn-outline-success" onclick="filterAction('FORWARD',this)">FORWARD</button>
+        <button class="btn btn-outline-warning" onclick="filterAction('METER',this)">METER</button>
+        <button class="btn btn-outline-danger"  onclick="filterAction('DROP',this)">DROP</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap" style="max-height:440px;overflow-y:auto;">
+    <table class="data-table" id="flow-table">
+      <thead>
+        <tr>
+          <th style="width:60px;">Flow ID</th>
+          <th style="width:60px;">Priority</th>
+          <th>Match</th>
+          <th style="width:100px;">Action</th>
+          <th style="width:90px;">Packets</th>
+          <th style="width:90px;">Bytes</th>
+          <th style="width:90px;">Status</th>
+        </tr>
+      </thead>
+      <tbody id="flow-tbody">
+        {% for f in flows %}
+        <tr class="flow-row" data-action="{{ f.action }}"
+            data-match="{{ f.target }}:{{ f.port }} {{ f.service }}">
+          <td class="mono text-muted" style="font-size:11px;">{{ f.flow_id }}</td>
+          <td>
+            <span class="priority-badge priority-{{ 'high' if f.priority >= 200 else ('med' if f.priority >= 100 else 'low') }}">
+              {{ f.priority }}
+            </span>
+          </td>
+          <td>
+            <div class="flow-match">
+              <span class="match-part">in_port=<strong>any</strong></span>
+              <span class="match-sep">·</span>
+              <span class="match-part">dst=<strong class="mono">{{ f.target }}:{{ f.port }}</strong></span>
+              <span class="match-sep">·</span>
+              <span class="match-part">proto=<strong>{{ f.protocol }}</strong></span>
+              {% if f.service != 'unknown' %}
+              <span class="match-sep">·</span>
+              <span class="match-part svc-tag">{{ f.service }}</span>
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            <span class="badge badge-{{ f.action_cls }}">{{ f.action }}</span>
+          </td>
+          <td class="mono text-muted" style="font-size:12px;">{{ f.packets }}</td>
+          <td class="mono text-muted" style="font-size:12px;">{{ f.bytes_str }}</td>
+          <td>
+            {% if f.action == 'DROP' %}
+            <span class="badge badge-danger">Alert</span>
+            {% else %}
+            <span class="badge badge-success">Active</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            <i class="bi bi-inbox d-block fs-3 mb-2"></i>
+            No flow entries yet — run a port scan first
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Connected Nodes ────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-hdd-network text-primary"></i>
+    <span class="fw-semibold">Connected Nodes</span>
+    <span class="badge badge-info ms-1">{{ nodes | length }}</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:110px;">Node ID</th>
+          <th>IP Address</th>
+          <th style="width:110px;">Scans Run</th>
+          <th>Last Seen</th>
+          <th style="width:90px;">Open Ports</th>
+          <th style="width:90px;">Status</th>
+          <th style="width:100px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in nodes %}
+        <tr>
+          <td class="mono" style="font-size:12px;color:var(--text-muted);">{{ n.node_id }}</td>
+          <td>
+            <span class="mono fw-medium">{{ n.ip }}</span>
+          </td>
+          <td class="text-center">{{ n.scan_count }}</td>
+          <td class="text-muted" style="font-size:12px;">{{ n.last_scan | dt }}</td>
+          <td class="text-center">
+            <span class="badge badge-info">{{ n.total_open }}</span>
+          </td>
+          <td>
+            <span class="ctrl-node-status">
+              <span class="ctrl-status-dot-sm"></span> Online
+            </span>
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="/scan?target={{ n.ip }}"
+                 class="btn btn-outline-primary btn-xs" title="Scan this node">
+                <i class="bi bi-search"></i>
+              </a>
+              <a href="/reports?target={{ n.ip }}"
+                 class="btn btn-outline-secondary btn-xs" title="View reports">
+                <i class="bi bi-file-text"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            <i class="bi bi-inbox d-block fs-3 mb-2"></i>
+            No nodes discovered yet — run a scan to populate
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+'use strict';
+
+let _activeAction = 'ALL';
+let _searchTerm   = '';
+
+function filterFlows(term) {
+  _searchTerm = term.toLowerCase();
+  _applyFilter();
+}
+
+function filterAction(action, btn) {
+  _activeAction = action;
+  document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _applyFilter();
+}
+
+function _applyFilter() {
+  document.querySelectorAll('#flow-tbody .flow-row').forEach(row => {
+    const matchAction = _activeAction === 'ALL' || row.dataset.action === _activeAction;
+    const matchSearch = !_searchTerm || row.dataset.match.toLowerCase().includes(_searchTerm);
+    row.style.display = (matchAction && matchSearch) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

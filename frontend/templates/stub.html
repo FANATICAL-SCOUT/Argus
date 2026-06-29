@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ stub_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{{ stub_title }}</h1>
+</div>
+
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <i class="bi {{ stub_icon }}"></i>
+  </div>
+  <h2 class="empty-state-title">Coming in {{ stub_phase }}</h2>
+  <p class="empty-state-body">{{ stub_description }}</p>
+  <a href="/" class="btn btn-primary">
+    <i class="bi bi-grid-1x2 me-2"></i>Back to Dashboard
+  </a>
+</div>
+{% endblock %}
