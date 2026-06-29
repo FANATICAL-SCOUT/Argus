@@ -130,14 +130,18 @@ Presents scan history as a live SDN controller view:
 
 | Flag | Description | Default |
 |---|---|---|
-| `-p`, `--ports` | Port range (`1-1024`, `80,443,8080`) | `1-1024` |
-| `-t`, `--timeout` | Connection timeout (seconds) | `1.0` |
-| `-T`, `--threads` | Thread count | `100` |
+| `-p`, `--ports` | Port range (`1-1024`, `80,443,8080`, `1-65535`) | `1-1024` |
+| `-t`, `--timeout` | Connection timeout in seconds | `1.0` |
+| `-T`, `--threads` | Number of scanner threads | `100` |
 | `-v`, `--vuln-scan` | CVE lookup on open ports | off |
-| `-o`, `--output` | Custom output file | auto-named |
-| `-D`, `--decoy` | Decoy scan (N decoy IPs, requires Scapy + root) | off |
-| `-m`, `--mac` | Spoof MAC address (optional vendor name) | off |
-| `-r`, `--restore-mac` | Restore original MAC after scan | off |
+| `-o`, `--output` | Custom output file path | auto-named |
+| `--aggressive` | Fast preset: 0.3s timeout, 300 threads (noisy) | off |
+| `--delay` | Per-probe delay in seconds — reduces IDS noise | `0` |
+| `--ping-check` | Ping host first; abort if unreachable | off |
+| `--no-vulns` | Skip vulnerability matching (faster) | off |
+| `-D`, `--decoy` | Decoy scan with N fake source IPs (requires Scapy + admin) | off |
+| `-m`, `--mac` | Spoof MAC — optional vendor name (Apple/Cisco/Dell/…) or omit for random (requires admin) | off |
+| `-r`, `--restore-mac` | Restore original MAC address after scan | off |
 
 ---
 

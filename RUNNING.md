@@ -45,7 +45,7 @@ argus gui
 
 ## CLI Scan Commands
 
-No admin needed for these.
+No admin needed for basic scanning.
 
 ```powershell
 # Basic scan (ports 1-1024)
@@ -54,17 +54,65 @@ argus 192.168.0.1
 # Specific ports
 argus 192.168.0.1 -p 80,443,22,3306
 
-# Port range
+# Full port scan (all 65535 ports)
 argus 192.168.0.1 -p 1-65535
 
 # With vulnerability report
 argus 192.168.0.1 -v
 
-# Fast aggressive scan
+# Aggressive mode — timeout 0.3s, 300 threads (fast but noisy)
 argus 192.168.0.1 --aggressive
 
-# Save report to file
+# Slow/stealth mode — add delay between probes to reduce IDS noise
+argus 192.168.0.1 --delay 0.5
+
+# Ping check — abort if host is unreachable before scanning
+argus 192.168.0.1 --ping-check
+
+# Custom threads and timeout
+argus 192.168.0.1 -T 200 -t 2.0
+
+# Save vulnerability report to file
 argus 192.168.0.1 -v -o report.txt
+
+# Combine — aggressive full scan with vuln report saved to file
+argus 192.168.0.1 -p 1-65535 --aggressive -v -o report.txt
+```
+
+---
+
+## MAC Spoofing (requires admin PowerShell)
+
+```powershell
+# Spoof as a specific vendor
+argus 192.168.0.1 -m Apple
+argus 192.168.0.1 -m Cisco
+argus 192.168.0.1 -m Dell
+
+# Random vendor MAC
+argus 192.168.0.1 -m
+
+# Spoof + restore original MAC after scan
+argus 192.168.0.1 -m Apple -r
+```
+
+Supported vendors: Apple, Cisco, Dell, Samsung, Intel, Huawei, TP-Link, Netgear, and more.
+
+---
+
+## Decoy Scan (requires Scapy + admin PowerShell)
+
+Sends scan traffic from multiple fake IP addresses to obscure your real IP in target logs.
+
+```powershell
+# Default — 5 decoy IPs
+argus 192.168.0.1 -D
+
+# Custom number of decoys
+argus 192.168.0.1 -D 10
+
+# Combine with vuln scan
+argus 192.168.0.1 -D 5 -v
 ```
 
 ---
