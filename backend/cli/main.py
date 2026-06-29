@@ -53,6 +53,10 @@ def _build_parser() -> argparse.ArgumentParser:
     vuln_grp.add_argument("-o", "--output", metavar="FILE",
                           help="Custom output path for vulnerability report")
 
+    out_grp = parser.add_argument_group("Output Options")
+    out_grp.add_argument("--json", action="store_true",
+                         help="Output results as JSON to stdout — suppresses all other output (pipe-friendly)")
+
     return parser
 
 

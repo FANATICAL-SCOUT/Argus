@@ -142,6 +142,7 @@ Presents scan history as a live SDN controller view:
 | `-D`, `--decoy` | Decoy scan with N fake source IPs (requires Scapy + admin) | off |
 | `-m`, `--mac` | Spoof MAC — optional vendor name (Apple/Cisco/Dell/…) or omit for random (requires admin) | off |
 | `-r`, `--restore-mac` | Restore original MAC address after scan | off |
+| `--json` | Output results as JSON to stdout — suppresses all other output (pipe-friendly) | off |
 
 ---
 

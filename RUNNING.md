@@ -145,6 +145,47 @@ Stop the mock controller with `Ctrl+C` when done.
 
 ---
 
+## JSON Output (pipe-friendly)
+
+Outputs clean JSON to stdout and suppresses all progress messages — useful for piping into other tools.
+
+```powershell
+# JSON output
+argus 192.168.0.1 --json
+
+# Pipe into Python's JSON formatter
+argus 192.168.0.1 --json | python -m json.tool
+
+# Save JSON to file
+argus 192.168.0.1 --json > result.json
+
+# JSON with full port range
+argus 192.168.0.1 -p 1-65535 --json > result.json
+```
+
+Example output:
+```json
+{
+  "target": "192.168.0.1",
+  "start_time": "2026-06-29T12:00:00",
+  "duration_seconds": 4.231,
+  "ports_scanned": 1024,
+  "open_count": 3,
+  "open_ports": [
+    {
+      "port": 22,
+      "protocol": "tcp",
+      "state": "open",
+      "service": "SSH",
+      "banner": "SSH-2.0-OpenSSH_8.9",
+      "vulnerabilities": []
+    }
+  ]
+}
+```
+
+---
+
 ## Summary — Three commands to know
 
 ```powershell

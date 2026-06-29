@@ -5,10 +5,47 @@ records/*.txt format, so existing users see no change.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from backend.config.settings import Settings
 from backend.core.models import ScanResult
+
+
+# ---------------------------------------------------------------------------
+# JSON output (machine-readable / pipe-friendly)
+# ---------------------------------------------------------------------------
+
+def print_scan_json(result: ScanResult) -> None:
+    """Dump ScanResult to stdout as JSON. Only output — no progress noise."""
+    meta = result.meta
+    data = {
+        "target": meta.target,
+        "start_time": meta.start_time.isoformat(),
+        "duration_seconds": round(meta.duration, 3),
+        "ports_scanned": meta.total_ports,
+        "open_count": meta.open_count,
+        "open_ports": [
+            {
+                "port": p.port,
+                "protocol": p.protocol,
+                "state": p.state,
+                "service": p.service,
+                "banner": p.banner if p.banner not in ("", "No banner retrieved") else None,
+                "vulnerabilities": [
+                    {
+                        "name": v.name,
+                        "cve": v.cve,
+                        "description": v.description,
+                        "confirmed": v.confirmed,
+                    }
+                    for v in p.vulnerabilities
+                ],
+            }
+            for p in result.open_ports
+        ],
+    }
+    print(json.dumps(data, indent=2))
 
 
 # ---------------------------------------------------------------------------

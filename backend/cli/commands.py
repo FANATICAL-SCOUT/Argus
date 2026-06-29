@@ -10,7 +10,7 @@ from argparse import Namespace
 from datetime import datetime
 
 from backend.core import scanner as core_scanner
-from backend.cli.output import print_scan_results, save_scan_txt
+from backend.cli.output import print_scan_results, print_scan_json, save_scan_txt
 from backend.utils.validators import validate_ip, resolve_hostname, parse_port_range
 
 
@@ -104,30 +104,36 @@ def _resolve_target(raw: str) -> str:
 
 def _run_regular(target: str, start_port: int, end_port: int, args: Namespace) -> None:
     # Aggressive preset overrides timeout/threads
-    timeout  = 0.3    if getattr(args, "aggressive", False) else getattr(args, "timeout",  1.0)
-    threads  = 300    if getattr(args, "aggressive", False) else getattr(args, "threads",  100)
-    delay    = getattr(args, "delay",      0.0)
+    timeout   = 0.3  if getattr(args, "aggressive", False) else getattr(args, "timeout",  1.0)
+    threads   = 300  if getattr(args, "aggressive", False) else getattr(args, "threads",  100)
+    delay     = getattr(args, "delay",      0.0)
     run_vulns = not getattr(args, "no_vulns", False)
-    do_ping  = getattr(args, "ping_check", False)
+    do_ping   = getattr(args, "ping_check", False)
+    json_mode = getattr(args, "json",       False)
+
+    def log(msg: str) -> None:
+        if not json_mode:
+            print(msg)
 
     if getattr(args, "aggressive", False):
-        print("[!] Aggressive mode: timeout=0.3s, threads=300")
+        log("[!] Aggressive mode: timeout=0.3s, threads=300")
 
     # Optional host liveness check
     if do_ping:
-        print(f"[*] Pinging {target}...")
+        log(f"[*] Pinging {target}...")
         alive, latency = core_scanner.ping_host(target, timeout=2.0)
         if alive:
-            print(f"[+] Host is reachable ({latency} ms)")
+            log(f"[+] Host is reachable ({latency} ms)")
         else:
-            print(f"[!] Host did not respond to ping. Use without --ping-check to force-scan.")
+            if not json_mode:
+                print(f"[!] Host did not respond to ping. Use without --ping-check to force-scan.")
             sys.exit(1)
 
-    print(f"[*] Starting port scan on {target}")
-    print(f"[*] Scanning ports {start_port}-{end_port}")
-    print(f"[*] Scan started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    log(f"[*] Starting port scan on {target}")
+    log(f"[*] Scanning ports {start_port}-{end_port}")
+    log(f"[*] Scan started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     if not run_vulns:
-        print("[*] Vulnerability detection disabled")
+        log("[*] Vulnerability detection disabled")
 
     result = core_scanner.scan(
         target,
@@ -140,21 +146,24 @@ def _run_regular(target: str, start_port: int, end_port: int, args: Namespace) -
     # OS fingerprint
     os_hint = core_scanner.fingerprint_os(result.ports)
     if os_hint:
-        print(f"[*] OS fingerprint (heuristic): {os_hint}")
+        log(f"[*] OS fingerprint (heuristic): {os_hint}")
 
-    print_scan_results(result)
-    save_scan_txt(result)
+    if json_mode:
+        print_scan_json(result)
+    else:
+        print_scan_results(result)
+        save_scan_txt(result)
 
     # Persist to SQLite (non-fatal if DB unavailable)
     try:
         from backend.database.db import save_scan
         scan_id = save_scan(result)
-        print(f"[*] Scan persisted to database (id={scan_id})")
+        log(f"[*] Scan persisted to database (id={scan_id})")
     except Exception as exc:
-        print(f"[!] Warning: could not persist to database: {exc}")
+        log(f"[!] Warning: could not persist to database: {exc}")
 
-    # Optional vuln report
-    if getattr(args, "vuln_scan", False):
+    # Optional vuln report (skip in json mode — vulns are already embedded in JSON)
+    if getattr(args, "vuln_scan", False) and not json_mode:
         from backend.core.vuln import generate_vuln_report
         report = generate_vuln_report(result, getattr(args, "output", None))
         print("\n" + report)
